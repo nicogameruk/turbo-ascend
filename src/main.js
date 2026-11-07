@@ -6,10 +6,15 @@ import { createWorld } from './world.js';
 import { createDrone } from './enemy.js';
 import { createSpeedLines } from './effects.js';
 import { createHud } from './hud.js';
+import { createMudField } from './pickups.js';
+import { createPortal } from './portal.js';
+import { createBoss } from './boss.js';
+import { createProgress, getStats } from './progress.js';
+import { createGarage } from './garage.js';
 
 const BASE_SPEED = 40;
-const BOOST_SPEED = 85;
-const MAX_HEALTH = 3;
+const MUD_GOAL = 20;
+const BOSS_BONUS = 15;
 const HIT_DISTANCE = 1.8;
 const INVULN_TIME = 1.5;
 
@@ -38,49 +43,121 @@ scene.add(car.group);
 const drone = createDrone();
 scene.add(drone.group);
 const speedLines = createSpeedLines(scene);
+const mud = createMudField(scene);
+const portal = createPortal(scene);
+const boss = createBoss(scene);
 const hud = createHud();
+const progress = createProgress();
+const garage = createGarage(progress, {
+  onBuy: () => car.applyUpgrades(progress.levels),
+  onLeave: () => leaveGarage(),
+});
 
-let state = 'playing'; // 'playing' | 'paused' | 'over'
-let health, invuln, meters, elapsed, speed;
+// 'flying' -> (portal) -> 'boss' -> 'victory' -> 'garage' -> 'flying' ...
+// plus 'paused' and 'over'.
+let state = 'flying';
+let pausedFrom = 'flying';
+let stats, health, invuln, meters, elapsed, speed, runMud;
 
-function reset() {
+function startRun() {
+  stats = getStats(progress.levels);
   car.reset();
+  car.setStats(stats);
+  car.applyUpgrades(progress.levels);
   drone.reset();
-  health = MAX_HEALTH;
+  drone.group.visible = true;
+  mud.reset();
+  portal.close();
+  boss.stop();
+  health = stats.maxHealth;
   invuln = 0;
   meters = 0;
   elapsed = 0;
   speed = BASE_SPEED;
-  state = 'playing';
+  runMud = 0;
+  state = 'flying';
+  hud.banner(`LEVEL 1 · DIRT — collect ${MUD_GOAL} mud chunks`, 3.5);
+}
+
+// Hurt the player unless they just got hit. Returns true if the hit landed.
+let devGodMode = false; // dev test hook only
+function damage() {
+  if (devGodMode || invuln > 0 || (state !== 'flying' && state !== 'boss')) return false;
+  health -= 1;
+  invuln = INVULN_TIME;
+  if (health <= 0) {
+    state = 'over';
+    car.group.visible = true;
+    hud.banner('', 0);
+  }
+  return true;
+}
+
+function startBoss() {
+  state = 'boss';
+  drone.reset();
+  drone.group.visible = false;
+  boss.start();
+  hud.banner('BOSS: SCRAP HAULER — catch the blue cores, dodge the red shots!', 4);
+}
+
+function win() {
+  state = 'victory';
+  const earned = runMud + BOSS_BONUS;
+  progress.mud += earned;
+  health = stats.maxHealth;
+  hud.banner(`LEVEL COMPLETE! +${earned} mud — press E for the garage`, Infinity);
+}
+
+function openGarage() {
+  state = 'garage';
+  hud.banner('', 0);
+  boss.stop();
+  mud.reset();
+  drone.group.visible = false;
+  car.group.visible = true;
+  garage.open();
+}
+
+function leaveGarage() {
+  if (state !== 'garage') return;
+  garage.close();
+  startRun();
 }
 
 function update(dt, time) {
   car.update(dt, input, time);
-
-  const target = car.boosting ? BOOST_SPEED : BASE_SPEED;
+  const target = car.boosting ? stats.boostSpeed : BASE_SPEED;
   speed += (target - speed) * (1 - Math.exp(-3 * dt));
-  const boostAmt = (speed - BASE_SPEED) / (BOOST_SPEED - BASE_SPEED);
+  const boostAmt = Math.min(1, (speed - BASE_SPEED) / (85 - BASE_SPEED));
 
   world.update(dt, speed);
   speedLines.update(dt, speed, boostAmt);
   car.setFlame(boostAmt, time);
-  drone.update(dt, car.group.position, speed, elapsed, time);
 
   invuln = Math.max(0, invuln - dt);
   car.group.visible = invuln > 0 ? Math.floor(invuln * 12) % 2 === 0 : true;
-
-  if (invuln === 0 && drone.position.distanceTo(car.group.position) < HIT_DISTANCE) {
-    health -= 1;
-    invuln = INVULN_TIME;
-    drone.knockBack();
-    if (health <= 0) {
-      state = 'over';
-      car.group.visible = true;
-    }
-  }
-
   meters += speed * dt;
   elapsed += dt;
+
+  const got = mud.update(dt, speed, car.group.position, state === 'flying', time);
+  if (got) {
+    runMud += got;
+    hud.pulseMud();
+  }
+
+  if (state === 'flying') {
+    drone.update(dt, car.group.position, speed, elapsed, time);
+    if (drone.position.distanceTo(car.group.position) < HIT_DISTANCE && damage()) drone.knockBack();
+    if (state !== 'flying') return;
+    if (runMud >= MUD_GOAL && !portal.active) {
+      portal.open();
+      hud.banner('PORTAL OPEN! Fly through it', 3);
+    }
+    if (portal.update(dt, speed)) startBoss();
+  } else if (state === 'boss') {
+    if (boss.update(dt, car.group.position, damage).defeated) win();
+  }
 }
 
 const clock = new THREE.Clock();
@@ -89,12 +166,33 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const time = clock.elapsedTime;
 
-  if (input.wasPressed('Escape') && state !== 'over') state = state === 'paused' ? 'playing' : 'paused';
-  if (input.wasPressed('KeyR') && state === 'over') reset();
+  if (input.wasPressed('Escape')) {
+    if (state === 'paused') state = pausedFrom;
+    else if (['flying', 'boss', 'victory'].includes(state)) { pausedFrom = state; state = 'paused'; }
+  }
 
-  if (state === 'playing') update(dt, time);
+  if (state === 'over' && input.wasPressed('KeyR')) startRun();
+  else if (state === 'victory' && input.wasPressed('KeyE')) openGarage();
+  else if (state === 'garage') {
+    garage.handleKeys(input);
+    if (state === 'garage') car.displaySpin(dt, time, innerWidth > 760 ? 2 : 0);
+  }
 
-  hud.update({ fuel: car.fuel, health, maxHealth: MAX_HEALTH, meters, droneZ: drone.position.z, state });
+  if (['flying', 'boss', 'victory'].includes(state)) update(dt, time);
+
+  hud.update(dt, {
+    state,
+    fuel: car.fuel,
+    fuelScale: stats.fuelBarScale,
+    health,
+    maxHealth: stats.maxHealth,
+    runMud,
+    goal: MUD_GOAL,
+    meters,
+    droneZ: drone.position.z,
+    bossHp: boss.hp,
+    bossMax: boss.maxHp,
+  });
   renderer.render(scene, camera);
   input.endFrame();
 }
@@ -105,10 +203,13 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state === 'playing') state = 'paused';
+  if (document.hidden && ['flying', 'boss', 'victory'].includes(state)) {
+    pausedFrom = state;
+    state = 'paused';
+  }
 });
 
-reset();
+startRun();
 frame();
 
 if (import.meta.env.DEV) {
@@ -117,11 +218,19 @@ if (import.meta.env.DEV) {
   window.__game = {
     get state() { return state; },
     get health() { return health; },
+    get runMud() { return runMud; },
+    set runMud(v) { runMud = v; },
+    progress,
     car,
     drone,
-    resume() { if (state === 'paused') state = 'playing'; },
+    boss,
+    portal,
+    set godMode(v) { devGodMode = v; },
+    resume() { if (state === 'paused') state = pausedFrom; },
+    openGarage,
+    leaveGarage,
     step(seconds, dt = 1 / 60) {
-      for (let t = 0; t < seconds && state === 'playing'; t += dt) update(dt, (simTime += dt));
+      for (let t = 0; t < seconds && ['flying', 'boss', 'victory'].includes(state); t += dt) update(dt, (simTime += dt));
     },
   };
 }

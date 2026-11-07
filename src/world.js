@@ -104,18 +104,6 @@ export function createWorld(scene) {
     movers.push({ obj: cloud, place });
   }
 
-  // Glowing rings in the flight area: speed cues now, collectible markers later.
-  const ringMat = new THREE.MeshStandardMaterial({ color: 0x2bd9ff, emissive: 0x2bd9ff, emissiveIntensity: 1.4, roughness: 0.3 });
-  const ringGeo = new THREE.TorusGeometry(2.4, 0.14, 12, 40);
-  for (let i = 0; i < 6; i++) {
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    const place = (o) => o.position.set(rand(-7, 7), rand(1, 8), o.position.z);
-    place(ring);
-    ring.position.z = FAR_Z + (i / 6) * SPAN;
-    scene.add(ring);
-    movers.push({ obj: ring, place });
-  }
-
   return {
     update(dt, speed) {
       const dz = speed * dt;

@@ -12,14 +12,43 @@
       #left { left: 20px; }
       #right { right: 20px; text-align: right; }
       .label { font-size: 12px; letter-spacing: .15em; opacity: .85; }
-      #fuel { width: 220px; height: 14px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.6); overflow: hidden; }
+      #fuel { width: 220px; height: 14px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.6); overflow: hidden; transition: width .3s; }
       #fuel-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff7a18, #ffd36e); }
       #hearts { font-size: 26px; color: #ff4d6d; letter-spacing: 4px; }
+      #mud { display: inline-flex; align-items: baseline; gap: 8px; transform-origin: left center; transition: transform .12s; }
+      #mud.pulse { transform: scale(1.25); }
+      #mud-count { font-size: 22px; color: #ffcf8a; }
+      #mud-count.full { color: #8dff9a; }
       #distance { font-size: 26px; font-weight: 700; }
+      #boss { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: min(420px, 50vw); text-align: center; display: none; }
+      #boss-bar { height: 14px; margin-top: 6px; border-radius: 7px; background: rgba(0,0,0,.4); border: 2px solid rgba(255,255,255,.6); overflow: hidden; }
+      #boss-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff3344, #ff9a3c); transition: width .2s; }
+      #banner { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 800; text-align: center; width: max-content; max-width: 90vw; opacity: 0; transition: opacity .3s; }
       #warning { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 18px; color: #ff5a5a; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; }
       #overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(5,10,25,.55); font-size: 42px; font-weight: 800; text-align: center; }
       #overlay small { display: block; font-size: 18px; font-weight: 400; margin-top: 10px; opacity: .9; }
       #help { position: absolute; bottom: 28px; left: 20px; font-size: 13px; opacity: .85; line-height: 1.6; transition: opacity 1s; }
+
+      #garage { position: absolute; top: 0; bottom: 0; left: 0; width: min(380px, 92vw); box-sizing: border-box; padding: 24px; display: none; flex-direction: column; gap: 12px; background: rgba(8,12,28,.82); pointer-events: auto; overflow-y: auto; }
+      #garage h1 { margin: 0; font-size: 32px; letter-spacing: .1em; }
+      #garage .bank { font-size: 18px; }
+      #garage .bank b { color: #ffcf8a; font-size: 22px; }
+      .upgrade { width: 100%; display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #fff; font: inherit; text-align: left; cursor: pointer; }
+      .upgrade:hover:not(:disabled) { border-color: #ffcf8a; background: rgba(255,207,138,.12); }
+      .upgrade:disabled { opacity: .45; cursor: default; }
+      .upgrade .key { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,.15); display: grid; place-items: center; font-weight: 700; }
+      .upgrade .info { display: flex; flex-direction: column; gap: 2px; }
+      .upgrade small { opacity: .8; }
+      .upgrade .pips { color: #8dff9a; letter-spacing: 2px; font-size: 13px; }
+      .upgrade .cost { font-weight: 700; color: #ffcf8a; }
+      #garage .note { margin: 0; font-size: 13px; opacity: .75; line-height: 1.5; }
+      /* Narrow windows: garage across the top so the car stays visible below. */
+      @media (max-width: 760px) {
+        #garage { width: 100%; bottom: auto; max-height: 52vh; padding: 16px; gap: 8px; }
+        #garage h1 { font-size: 24px; }
+        .upgrade { padding: 6px 10px; }
+      }
+      #garage-go { margin-top: auto; padding: 12px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
     </style>
   </head>
   <body>
@@ -29,14 +58,27 @@
         <div class="label">TURBO FUEL</div>
         <div id="fuel"><div id="fuel-fill"></div></div>
         <div id="hearts"></div>
+        <div id="mud"><span class="label">MUD</span><b id="mud-count">0 / 20</b></div>
       </div>
       <div class="panel" id="right">
         <div class="label">DISTANCE</div>
         <div id="distance">0 m</div>
       </div>
+      <div id="boss">
+        <div class="label">SCRAP HAULER</div>
+        <div id="boss-bar"><div id="boss-fill"></div></div>
+      </div>
+      <div id="banner"></div>
       <div id="warning">DRONE CLOSING IN</div>
       <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; Esc: pause</div>
       <div id="overlay"></div>
+      <div id="garage">
+        <h1>GARAGE</h1>
+        <div class="bank">Mud: <b id="garage-mud">0</b></div>
+        <div id="garage-list"></div>
+        <p class="note">Press 1–4 or click to buy. Level 2 (Grass) comes in a later build, so for now you fly Dirt again with your upgrades.</p>
+        <button id="garage-go">Fly again (Enter)</button>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
