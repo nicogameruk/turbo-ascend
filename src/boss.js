@@ -330,6 +330,7 @@ export function createBoss(scene) {
         const phase2 = hp <= maxHp / 2;
         fireT -= dt;
         if (fireT <= 0) {
+          ev.fired = true;
           fireT = cfg.fireEvery * (phase2 ? 0.72 : 1);
           const from = group.localToWorld(tmp.copy(muzzles[muzzleIndex++ % 2]));
           // Later bosses fire wider spreads, so you have to pick your gap.
@@ -355,7 +356,7 @@ export function createBoss(scene) {
         s.mesh.rotation.y += dt * 4;
         const d = sp.distanceTo(carPos);
         if (s.kind === 'red' && d < 1.4 && damage()) kill(s);
-        else if (s.kind === 'blue' && d < 2.0) { kill(s); fireBolt(carPos); }
+        else if (s.kind === 'blue' && d < 2.0) { kill(s); fireBolt(carPos); ev.caught = true; }
         else if (sp.z > 18) kill(s);
       }
 
@@ -368,6 +369,7 @@ export function createBoss(scene) {
         if (dist < 3) {
           kill(b);
           hp -= 1;
+          ev.hurt = true;
           hullMat.emissiveIntensity = 1.5;
           spawnBoom(bp);
           if (hp <= 0) {

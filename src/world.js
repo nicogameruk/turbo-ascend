@@ -6,19 +6,31 @@ const SPAN = NEAR_Z - FAR_Z;
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
-function gradientTexture(top, bottom) {
+// Sky: a vertical gradient on a small canvas, redrawn as the colours shift.
+function createSky() {
   const c = document.createElement('canvas');
   c.width = 2;
   c.height = 256;
   const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, top);
-  grad.addColorStop(1, bottom);
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 2, 256);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  const top = new THREE.Color();
+  const bottom = new THREE.Color();
+  const tmp = new THREE.Color();
+  return {
+    tex,
+    // f: 0 = start colours, 1 = end colours
+    draw(from, to, f) {
+      top.set(from[0]).lerp(tmp.set(to[0]), f);
+      bottom.set(from[1]).lerp(tmp.set(to[1]), f);
+      const grad = g.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, `#${top.getHexString()}`);
+      grad.addColorStop(1, `#${bottom.getHexString()}`);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 2, 256);
+      tex.needsUpdate = true;
+    },
+  };
 }
 
 // Speckled ground with furrows, coloured by the level's palette.
@@ -111,14 +123,17 @@ export function createWorld(scene, hemi) {
   }
 
   let groundTex = null;
-  let skyTex = null;
+  const sky = createSky();
+  scene.background = sky.tex;
+  let theme = null;
+  let skyF = -1;
 
   return {
     // Repaint the world for a level.
     setTheme(level) {
-      skyTex?.dispose();
-      skyTex = gradientTexture(...level.sky);
-      scene.background = skyTex;
+      theme = level;
+      skyF = -1;
+      this.setSkyProgress(0);
       scene.fog.color.setHex(level.fog);
       hemi.color.setHex(level.hemi[0]);
       hemi.groundColor.setHex(level.hemi[1]);
@@ -147,6 +162,14 @@ export function createWorld(scene, hemi) {
 
       cloudMat.color.setHex(level.cloud.color);
       cloudMat.emissive.setHex(level.cloud.emissive);
+    },
+
+    // The sky slowly changes colour as you get through the level (0..1).
+    setSkyProgress(f) {
+      f = Math.min(1, Math.max(0, f));
+      if (!theme || Math.abs(f - skyF) < 0.01) return;
+      skyF = f;
+      sky.draw(theme.sky, theme.sky2 ?? theme.sky, f);
     },
 
     update(dt, speed) {

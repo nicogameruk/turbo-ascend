@@ -198,6 +198,9 @@ export function createCar() {
   let steerSpeed = 13;
   let fuelDrain = 0.35;
   let flamePower = 1;
+  let tier = 1;
+  let paintOverride = null; // shop paint colour, or null for the level look
+  let rainbowFlame = false;
 
   const car = {
     group,
@@ -281,9 +284,10 @@ export function createCar() {
     },
 
     // Change the paint and decorations to a level's look.
-    setTier(tier) {
+    setTier(n) {
+      tier = n;
       const t = TIERS[tier] ?? TIERS[1];
-      paint.color.setHex(t.color);
+      paint.color.setHex(paintOverride ?? t.color);
       paint.roughness = t.rough;
       paint.metalness = t.metal;
       paint.flatShading = !!t.flat;
@@ -294,6 +298,18 @@ export function createCar() {
       paint.needsUpdate = true;
       mudSplats.forEach((m) => { m.visible = tier === 1; });
       for (const [n, g] of Object.entries(tierParts)) g.visible = Number(n) === tier || (Number(n) === 5 && tier === 6);
+    },
+
+    // Shop paint: a colour, or null to use the level look.
+    setPaint(hex) {
+      paintOverride = hex ?? null;
+      car.setTier(tier);
+    },
+
+    // Shop trail colour also tints the booster flames (null = rainbow).
+    setTrailColor(hex) {
+      rainbowFlame = hex === null;
+      flameMat.color.setHex(hex ?? 0xff8a2a);
     },
 
     // Dash ability: steer much faster for a moment.
@@ -318,6 +334,7 @@ export function createCar() {
         mesh.scale.z = w;
       }
       flameMat.opacity = 0.55 + amount * 0.4;
+      if (rainbowFlame) flameMat.color.setHSL((time * 0.4) % 1, 1, 0.55);
     },
   };
 

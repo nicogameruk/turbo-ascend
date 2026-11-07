@@ -11,6 +11,9 @@ export function createHud() {
   const mudCount = $('mud-count');
   const levelName = $('level-name');
   const distance = $('distance');
+  const timer = $('timer');
+  const flashEl = $('flash');
+  const vignette = $('hit-vignette');
   const boss = $('boss');
   const bossName = $('boss-name');
   const bossFill = $('boss-fill');
@@ -22,11 +25,13 @@ export function createHud() {
   const abilityName = $('ability-name');
   const abilityFill = $('ability-fill');
   const abilityHint = $('ability-hint');
-  setTimeout(() => { help.style.opacity = '0'; }, 6000);
+  let helpTimer = 0;
 
   let bannerTime = 0;
   let pulseTimer = 0;
   let lastOverlay = null;
+  let flashT = 0;
+  let hurtT = 0;
   const setText = (el, text) => { if (el.textContent !== text) el.textContent = text; };
 
   return {
@@ -36,6 +41,17 @@ export function createHud() {
       bannerTime = seconds;
       banner.style.opacity = text ? '1' : '0';
     },
+
+    // Show the controls line for a few seconds.
+    showHelp() {
+      help.style.opacity = '0.85';
+      clearTimeout(helpTimer);
+      helpTimer = setTimeout(() => { help.style.opacity = '0'; }, 6000);
+    },
+
+    // White flash (lightning) and red edges (getting hit).
+    flash(strength = 0.6) { flashT = strength; },
+    hurt() { hurtT = 0.35; },
 
     pulseMud() {
       mudBox.classList.add('pulse');
@@ -49,9 +65,16 @@ export function createHud() {
         if (bannerTime <= 0) banner.style.opacity = '0';
       }
 
-      const inGarage = s.state === 'garage';
+      flashT = Math.max(0, flashT - dt * 3);
+      flashEl.style.opacity = flashT.toFixed(2);
+      hurtT = Math.max(0, hurtT - dt);
+      vignette.style.opacity = hurtT > 0 ? '1' : '0';
+
+      const inGarage = s.state === 'garage' || s.state === 'menu';
       left.style.display = inGarage ? 'none' : 'flex';
       right.style.display = inGarage ? 'none' : 'flex';
+      help.style.display = s.state === 'menu' ? 'none' : '';
+      setText(timer, s.timeText);
 
       fuelBox.style.width = `${Math.round(220 * s.fuelScale)}px`;
       fuelFill.style.width = `${(s.fuel * 100).toFixed(1)}%`;
@@ -71,7 +94,7 @@ export function createHud() {
 
       // Active ability and its cooldown.
       const a = s.ability;
-      ability.style.display = a && !inGarage ? 'block' : 'none';
+      ability.style.display = a && !inGarage && s.state !== 'over' ? 'block' : 'none';
       if (a) {
         setText(abilityName, a.name);
         abilityFill.style.width = `${(1 - a.cooldownLeft / a.cooldown) * 100}%`;
@@ -80,8 +103,7 @@ export function createHud() {
       }
 
       let html = '';
-      if (s.state === 'paused') html = 'PAUSED<small>Press Esc to resume</small>';
-      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m · Press R to try again (upgrades are kept)</small>`;
+      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins<br>R: try again · E: garage · Esc: menu (upgrades are kept)</small>`;
       if (html !== lastOverlay) {
         overlay.innerHTML = html;
         overlay.style.display = html ? 'flex' : 'none';

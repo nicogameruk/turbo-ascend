@@ -1,9 +1,10 @@
 // Keyboard state. `down` = held keys, `pressed` = keys pressed since last frame.
 const down = new Set();
 const pressed = new Set();
-const BLOCK_DEFAULT = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+const BLOCK_DEFAULT = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'];
 
 addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement && e.code !== 'Escape') return; // typing in a settings control
   if (!down.has(e.code)) pressed.add(e.code);
   down.add(e.code);
   if (BLOCK_DEFAULT.includes(e.code)) e.preventDefault();
