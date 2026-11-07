@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turbo Ascend</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; }
+      #app canvas { display: block; }
+      #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.5); }
+      .panel { position: absolute; top: 16px; display: flex; flex-direction: column; gap: 6px; }
+      #left { left: 20px; }
+      #right { right: 20px; text-align: right; }
+      .label { font-size: 12px; letter-spacing: .15em; opacity: .85; }
+      #fuel { width: 220px; height: 14px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.6); overflow: hidden; }
+      #fuel-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff7a18, #ffd36e); }
+      #hearts { font-size: 26px; color: #ff4d6d; letter-spacing: 4px; }
+      #distance { font-size: 26px; font-weight: 700; }
+      #warning { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 18px; color: #ff5a5a; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; }
+      #overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(5,10,25,.55); font-size: 42px; font-weight: 800; text-align: center; }
+      #overlay small { display: block; font-size: 18px; font-weight: 400; margin-top: 10px; opacity: .9; }
+      #help { position: absolute; bottom: 28px; left: 20px; font-size: 13px; opacity: .85; line-height: 1.6; transition: opacity 1s; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hud">
+      <div class="panel" id="left">
+        <div class="label">TURBO FUEL</div>
+        <div id="fuel"><div id="fuel-fill"></div></div>
+        <div id="hearts"></div>
+      </div>
+      <div class="panel" id="right">
+        <div class="label">DISTANCE</div>
+        <div id="distance">0 m</div>
+      </div>
+      <div id="warning">DRONE CLOSING IN</div>
+      <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; Esc: pause</div>
+      <div id="overlay"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
