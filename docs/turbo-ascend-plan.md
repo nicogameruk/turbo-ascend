@@ -81,3 +81,6 @@ The car always flies forward on its own, so you only steer. No mouse needed.
 | 4. Polish | Effects, sound, menus, saving |
 | 5. Levels 8–14 | The cosmic levels and the final boss |
 | 6. Launch | Put it on a website |
+
+### Status
+All six stages are built. Stage 6 has the game ready to put online: a production build that works from any web address, plus an automatic GitHub Pages workflow. See the README for how to publish it.

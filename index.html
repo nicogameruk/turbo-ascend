@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Turbo Ascend</title>
+    <meta name="description" content="Fly a flying car through 14 levels, from a dented dirt racer to a glowing cosmic machine. A free 3D browser game." />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:title" content="Turbo Ascend" />
+    <meta property="og:description" content="Fly a flying car through 14 levels, from a dented dirt racer to a glowing cosmic machine." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; }
       #app canvas { display: block; }
@@ -78,6 +84,9 @@
       #garage-go { margin-top: auto; padding: 12px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
 
       /* Menus */
+      #fatal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; color: #fff; text-align: center; font-size: 18px; line-height: 1.6; }
+      .touch-note { display: none; color: #ffcf8a; font-size: 13px; }
+      @media (hover: none) and (pointer: coarse) { .touch-note { display: block; } }
       #menus { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(5,8,20,.55); color: #fff; z-index: 2; }
       .menu { display: none; flex-direction: column; align-items: center; gap: 12px; width: min(380px, 92vw); padding: 28px 24px; border-radius: 16px; background: rgba(8,12,28,.82); box-sizing: border-box; text-align: center; }
       .menu h1 { margin: 0; font-size: clamp(34px, 8vw, 52px); font-weight: 900; letter-spacing: .06em; background: linear-gradient(180deg, #ffe27a, #ff7a18); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -169,6 +178,7 @@
       <div class="menu" id="menu-title">
         <h1>TURBO ASCEND</h1>
         <p>From a dented dirt car to a cosmic machine.</p>
+        <p class="touch-note">This game is played with a keyboard.</p>
         <button class="primary" data-action="continue" id="btn-continue" hidden>Continue</button>
         <button data-action="newgame">New Game</button>
         <button data-action="controls">Controls</button>
@@ -205,6 +215,10 @@
         <button class="primary" data-action="back">Back</button>
       </div>
     </div>
+    <div id="fatal">
+      <div><b>Turbo Ascend needs WebGL to run.</b><br />Try a recent version of Chrome, Edge, Firefox or Safari, and check that hardware acceleration is turned on.</div>
+    </div>
+    <noscript><p style="color:#fff;text-align:center;padding:24px">Turbo Ascend needs JavaScript to run.</p></noscript>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

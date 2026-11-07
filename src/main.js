@@ -26,7 +26,15 @@ const MENU_SPEED = 22;
 const INVULN_TIME = 1.5;
 const NO_INPUT = { up: false, down: false, left: false, right: false, boost: false };
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+// Without WebGL the game can't run: show a message instead of a blank page.
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+} catch (err) {
+  document.getElementById('fatal').style.display = 'flex';
+  document.getElementById('hud').style.display = 'none';
+  throw err;
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
