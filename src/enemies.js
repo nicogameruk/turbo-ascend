@@ -446,7 +446,329 @@ function createDemon() {
   };
 }
 
-const FACTORIES = { bike: createBike, jet: createJet, ufo: createUfo, warship: createWarship, sniper: createSniper, demon: createDemon };
+// ---------- Space pirate: strafes across your path, firing straight back ----------
+function createPirate() {
+  const group = new THREE.Group();
+  const hull = std(0x3a2a4a, 0.4, 0.6);
+  const trim = std(0xc8a040, 0.2, 1);
+  mesh(group, new THREE.BoxGeometry(2.2, 0.8, 3.6), hull);
+  const nose = mesh(group, new THREE.ConeGeometry(0.8, 1.6, 4), hull, 0, 0, -2.5);
+  nose.rotation.x = -Math.PI / 2;
+  mesh(group, new THREE.BoxGeometry(5, 0.15, 1.4), hull, 0, 0, 0.5);
+  mesh(group, new THREE.BoxGeometry(0.08, 1.6, 1.2), trim, 0, 1, 0.6);
+  // Skull-ish flag
+  mesh(group, new THREE.BoxGeometry(0.05, 0.7, 0.9), basic(0x111111), 0, 1.5, 0.2);
+  mesh(group, new THREE.SphereGeometry(0.16, 10, 8), basic(0xffffff), 0.04, 1.55, 0.2);
+  const guns = [-1.8, 1.8].map((x) => {
+    const g = mesh(group, new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8), trim, x, -0.2, 1.4);
+    g.rotation.x = Math.PI / 2;
+    return g;
+  });
+  const burn = mesh(group, new THREE.ConeGeometry(0.4, 1.4, 10, 1, true), glowMat(0xff4aa8));
+  burn.rotation.x = Math.PI / 2;
+  burn.position.z = 2.4;
+
+  let phase, t, fireT, dir, y;
+  const from = new THREE.Vector3();
+  const to = new THREE.Vector3();
+  return {
+    group,
+    radius: 2.2,
+    blastable: true,
+    start() {
+      dir = Math.random() < 0.5 ? -1 : 1;
+      y = rand(1.5, 7);
+      group.position.set(-dir * 22, y, -240);
+      phase = 'enter';
+      t = 0;
+      fireT = 0;
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { diff, shots }) {
+      const p = group.position;
+      t += dt;
+      if (phase === 'enter') {
+        p.z += 80 * dt;
+        p.x += (-dir * 11 - p.x) * ease(2, dt);
+        if (p.z >= -28) { phase = 'strafe'; t = 0; }
+      } else if (phase === 'strafe') {
+        // Sweep across the screen, dropping shots that fly straight back at you.
+        p.x += dir * (7 + diff * 0.3) * dt;
+        group.rotation.z = -dir * 0.3;
+        fireT -= dt;
+        if (fireT <= 0) {
+          fireT = 0.32;
+          for (const g of guns) {
+            g.getWorldPosition(from);
+            to.set(from.x, from.y, 10);
+            shots.spawn('red', from, to, 34);
+          }
+        }
+        if (Math.abs(p.x) > 12 && t > 1) phase = 'leave';
+      } else {
+        p.y += 10 * dt;
+        p.z -= 40 * dt;
+        if (p.z < -240) return false;
+      }
+      return true;
+    },
+  };
+}
+
+// ---------- Void creature: drifts toward you and pulls you in ----------
+function createVoid() {
+  const group = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x050308, roughness: 0.2, metalness: 0.9, emissive: 0x200838 });
+  mesh(group, new THREE.SphereGeometry(1.1, 24, 16), dark);
+  const ring = mesh(group, new THREE.TorusGeometry(1.7, 0.12, 8, 40), glowMat(0xb04aff, 0.9));
+  const swirl = mesh(group, new THREE.TorusGeometry(2.6, 0.05, 6, 48), glowMat(0x7a2aff, 0.5));
+  const eye = mesh(group, new THREE.SphereGeometry(0.3, 12, 8), basic(0xff3aff), 0, 0, 1);
+  const tentacles = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const tnt = mesh(group, new THREE.CylinderGeometry(0.12, 0.02, 2.2, 6), dark, Math.cos(a) * 1.3, Math.sin(a) * 1.3, 0);
+    tnt.rotation.z = a - Math.PI / 2;
+    tentacles.push(tnt);
+  }
+
+  let phase, t;
+  return {
+    group,
+    radius: 1.9,
+    blastable: true,
+    start({ carPos }) {
+      group.position.set(THREE.MathUtils.clamp(carPos.x + rand(-4, 4), -6, 6), rand(2, 7), -200);
+      phase = 'enter';
+      t = 0;
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { carPos, time, diff, pull }) {
+      const p = group.position;
+      t += dt;
+      ring.rotation.z += dt * 2;
+      swirl.rotation.z -= dt * 3;
+      swirl.scale.setScalar(1 + Math.sin(time * 4) * 0.15);
+      tentacles.forEach((tn, i) => { tn.scale.y = 1 + Math.sin(time * 5 + i) * 0.25; });
+      eye.position.x = THREE.MathUtils.clamp((carPos.x - p.x) * 0.05, -0.3, 0.3);
+      if (phase === 'enter') {
+        p.z += 70 * dt;
+        if (p.z >= -22) { phase = 'pull'; t = 0; }
+      } else if (phase === 'pull') {
+        // Creep toward you while dragging you toward it.
+        p.z += (2 + diff * 0.2) * dt;
+        p.x += (carPos.x - p.x) * ease(0.4, dt);
+        p.y += (carPos.y - p.y) * ease(0.4, dt);
+        pull?.(p, 3.5 + diff * 0.15);
+        if (t > 5.5 || p.z > 6) phase = 'leave';
+      } else {
+        p.z -= 50 * dt;
+        p.y += 6 * dt;
+        if (p.z < -220) return false;
+      }
+      return true;
+    },
+  };
+}
+
+// ---------- Glitch robot: teleports around and shoots after each jump ----------
+function createGlitch() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const dark = std(0x101828, 0.3, 0.8);
+  mesh(body, new THREE.BoxGeometry(1.2, 1.2, 1.2), dark);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.25, 1.25, 1.25)), new THREE.LineBasicMaterial({ color: 0x00f0ff }));
+  body.add(edges);
+  const visor = mesh(body, new THREE.BoxGeometry(0.9, 0.2, 0.05), basic(0xff2ad8), 0, 0.15, 0.62);
+  mesh(body, new THREE.BoxGeometry(0.15, 0.6, 0.15), dark, 0, 0.9, 0);
+  const glitchMat = glowMat(0x00f0ff, 0.6);
+  const ghost = mesh(group, new THREE.BoxGeometry(1.4, 1.4, 1.4), glitchMat);
+
+  let jumps, t, flicker;
+  const jump = () => {
+    group.position.set(rand(-6, 6), rand(1, 7.5), rand(-38, -18));
+    flicker = 0.3;
+  };
+  return {
+    group,
+    radius: 1.4,
+    blastable: true,
+    start() {
+      jump();
+      jumps = 0;
+      t = 0.6;
+    },
+    update(dt, { carPos, time, diff, shots }) {
+      t -= dt;
+      flicker = Math.max(0, flicker - dt);
+      body.visible = flicker <= 0 || Math.floor(time * 30) % 2 === 0;
+      ghost.visible = flicker > 0;
+      ghost.scale.setScalar(1 + flicker * 3);
+      body.position.x = flicker > 0 ? rand(-0.2, 0.2) : 0;
+      visor.material.color.setHex(Math.floor(time * 6) % 2 ? 0xff2ad8 : 0x00f0ff);
+      body.rotation.y += dt;
+      if (t <= 0) {
+        jumps++;
+        if (jumps > 5) return false;
+        jump();
+        t = 1.3 - diff * 0.03;
+        shots.spawn('green', group.position, carPos, 30 + diff);
+      }
+      return true;
+    },
+  };
+}
+
+// ---------- Dragon: flies ahead and breathes a sweeping stream of fire ----------
+function createDragon() {
+  const group = new THREE.Group();
+  const scale = std(0x2a6a2a, 0.4, 0.5, { flatShading: true, emissive: 0x0a2a0a });
+  const belly = std(0xc8a040, 0.5, 0.2);
+  const body = mesh(group, new THREE.SphereGeometry(1, 16, 12), scale);
+  body.scale.set(1, 0.8, 2.2);
+  const neck = mesh(group, new THREE.CylinderGeometry(0.35, 0.55, 1.8, 8), scale, 0, 0.6, 2.2);
+  neck.rotation.x = 1.1;
+  const head = mesh(group, new THREE.BoxGeometry(0.8, 0.6, 1.2), scale, 0, 1, 3.1);
+  mesh(group, new THREE.BoxGeometry(0.6, 0.2, 0.8), belly, 0, 0.75, 3.2);
+  for (const x of [-0.25, 0.25]) {
+    const h = mesh(head, new THREE.ConeGeometry(0.08, 0.5, 6), std(0x1a1010, 0.4, 0.3), x, 0.4, -0.3);
+    h.rotation.x = -0.6;
+    mesh(head, new THREE.SphereGeometry(0.08, 8, 6), basic(0xffd030), x, 0.15, 0.55);
+  }
+  const tail = mesh(group, new THREE.ConeGeometry(0.45, 3, 8), scale, 0, 0, -3);
+  tail.rotation.x = -Math.PI / 2;
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0);
+  wingShape.lineTo(3.5, 1.6);
+  wingShape.lineTo(3.2, -0.4);
+  wingShape.lineTo(2, -0.2);
+  wingShape.lineTo(1.6, -1.2);
+  wingShape.lineTo(0.6, -0.4);
+  wingShape.lineTo(0, -1);
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  wingGeo.rotateX(-Math.PI / 2);
+  const wingMat = std(0x4a1a12, 0.6, 0.1, { side: THREE.DoubleSide });
+  const wings = [-1, 1].map((sd) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(sd * 0.6, 0.4, 0);
+    pivot.scale.x = sd;
+    pivot.add(new THREE.Mesh(wingGeo, wingMat));
+    group.add(pivot);
+    return pivot;
+  });
+
+  let phase, t, fireT, sweep;
+  const mouth = new THREE.Vector3();
+  const target = new THREE.Vector3();
+  return {
+    group,
+    radius: 2.4,
+    blastable: true,
+    start() {
+      group.position.set(rand(-6, 6), rand(4, 9), -240);
+      phase = 'enter';
+      t = 0;
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { carPos, time, diff, shots }) {
+      const p = group.position;
+      t += dt;
+      wings.forEach((w) => { w.rotation.z = Math.sin(time * 6) * 0.5; });
+      if (phase === 'enter') {
+        p.z += 75 * dt;
+        if (p.z >= -34) { phase = 'hover'; t = 0; }
+      } else if (phase === 'hover') {
+        p.x += (carPos.x - p.x) * ease(0.6, dt);
+        if (t > 1.2) { phase = 'breathe'; t = 0; fireT = 0; sweep = Math.random() < 0.5 ? -1 : 1; }
+      } else if (phase === 'breathe') {
+        // A stream of fire that sweeps across your lane.
+        fireT -= dt;
+        if (fireT <= 0) {
+          fireT = 0.09;
+          head.getWorldPosition(mouth);
+          target.set(carPos.x + sweep * (t / 1.6 - 0.5) * 12, carPos.y + rand(-0.5, 0.5), 0);
+          shots.spawn('fire', mouth, target, 30 + diff);
+        }
+        if (t > 1.6) { phase = 'hover2'; t = 0; }
+      } else if (phase === 'hover2') {
+        if (t > 1.5) phase = 'leave';
+      } else {
+        p.y += 10 * dt;
+        p.z -= 35 * dt;
+        if (p.z < -250) return false;
+      }
+      return true;
+    },
+  };
+}
+
+// ---------- Light spirit: copies your moves ahead of you, then rushes along your path ----------
+function createSpirit() {
+  const group = new THREE.Group();
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const core = mesh(group, new THREE.SphereGeometry(0.55, 16, 12), coreMat);
+  const aura = mesh(group, new THREE.SphereGeometry(1.2, 16, 12), glowMat(0xffffff, 0.35));
+  // A ghostly car shape, since it copies you.
+  const ghost = mesh(group, new THREE.BoxGeometry(2, 0.4, 3.6), glowMat(0xffffff, 0.25));
+  ghost.position.y = -0.2;
+
+  let phase, t, hue;
+  const history = []; // your recent positions, which it follows
+  return {
+    group,
+    radius: 1.7,
+    blastable: true,
+    start({ carPos }) {
+      group.position.set(carPos.x, carPos.y, -200);
+      history.length = 0;
+      phase = 'enter';
+      t = 0;
+      hue = Math.random();
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { carPos, time, diff }) {
+      const p = group.position;
+      t += dt;
+      hue = (hue + dt * 0.4) % 1;
+      aura.material.color.setHSL(hue, 1, 0.6);
+      ghost.material.color.setHSL((hue + 0.5) % 1, 1, 0.6);
+      core.scale.setScalar(1 + Math.sin(time * 10) * 0.1);
+      history.push(carPos.x, carPos.y);
+      const delay = 24; // frames behind you
+      const i = Math.max(0, history.length - delay * 2);
+      const hx = history[i] ?? carPos.x;
+      const hy = history[i + 1] ?? carPos.y;
+      if (history.length > 400) history.splice(0, 200);
+      if (phase === 'enter') {
+        p.z += 80 * dt;
+        p.x += (hx - p.x) * ease(4, dt);
+        p.y += (hy - p.y) * ease(4, dt);
+        if (p.z >= -30) { phase = 'mirror'; t = 0; }
+      } else if (phase === 'mirror') {
+        // Copies what you did a moment ago...
+        p.x += (hx - p.x) * ease(6, dt);
+        p.y += (hy - p.y) * ease(6, dt);
+        if (t > 1.6) { phase = 'rush'; t = 0; }
+      } else if (phase === 'rush') {
+        // ...then charges down that line.
+        p.z += (30 + diff * 1.5) * dt;
+        p.x += (hx - p.x) * ease(1.5, dt);
+        p.y += (hy - p.y) * ease(1.5, dt);
+        if (p.z > 22) return false;
+      } else {
+        p.y += 12 * dt;
+        p.z -= 30 * dt;
+        if (p.y > 40) return false;
+      }
+      return true;
+    },
+  };
+}
+
+const FACTORIES = {
+  bike: createBike, jet: createJet, ufo: createUfo, warship: createWarship, sniper: createSniper, demon: createDemon,
+  pirate: createPirate, void: createVoid, glitch: createGlitch, dragon: createDragon, spirit: createSpirit,
+};
 
 export function createEnemies(scene, booms) {
   const drones = [createDrone(), createDrone()];
@@ -492,8 +814,9 @@ export function createEnemies(scene, booms) {
       drones.forEach((d) => { d.group.visible = false; });
     },
 
-    update(dt, ctx) {
-      for (const w of waves) {
+    // spawning = false during the boss fight: no new waves, no drones, but minions still move.
+    update(dt, ctx, spawning = true) {
+      for (const w of spawning ? waves : []) {
         w.timer -= dt;
         if (w.timer <= 0) {
           w.timer = rand(...w.cfg.every) * (1 - ctx.diff * 0.04);
@@ -502,16 +825,17 @@ export function createEnemies(scene, booms) {
         }
       }
 
-      for (const d of chasers()) {
+      for (const d of spawning ? chasers() : []) {
         d.update(dt, ctx);
-        if (d.group.position.distanceTo(ctx.carPos) < d.radius && ctx.hit()) d.knockBack();
+        if (d.group.position.distanceTo(ctx.carPos) < d.radius + (ctx.smash ? 1 : 0) && (ctx.smash || ctx.hit())) d.knockBack();
       }
       for (const slot of allSlots()) {
         if (!slot.alive) continue;
         const e = slot.enemy;
         if (!e.update(dt, ctx)) { kill(slot); continue; }
-        if (e.radius && e.group.position.distanceTo(ctx.carPos) < e.radius && ctx.hit()) {
-          if (e.onRam) e.onRam(); else { booms.spawn(e.group.position); kill(slot); }
+        if (e.radius && e.group.position.distanceTo(ctx.carPos) < e.radius + (ctx.smash ? 1 : 0)) {
+          if (ctx.smash) { booms.spawn(e.group.position, 0xffffff, 1.4); kill(slot); ctx.onKill?.(); }
+          else if (ctx.hit()) { if (e.onRam) e.onRam(); else { booms.spawn(e.group.position); kill(slot); } }
         }
       }
     },
@@ -530,6 +854,25 @@ export function createEnemies(scene, booms) {
       }
       return n;
     },
+
+    // Fire Breath: burn everything in a cone ahead of the car.
+    burnAhead(carPos) {
+      let n = 0;
+      for (const slot of allSlots()) {
+        if (!slot.alive || !slot.enemy.blastable) continue;
+        const p = slot.enemy.group.position;
+        const ahead = carPos.z - p.z;
+        if (ahead > 0 && ahead < 90 && Math.abs(p.x - carPos.x) < 4 + ahead * 0.12 && Math.abs(p.y - carPos.y) < 4 + ahead * 0.08) {
+          booms.spawn(p, 0xff6a1a, 1.6);
+          kill(slot);
+          n++;
+        }
+      }
+      return n;
+    },
+
+    // Boss minions: spawn one enemy of a type right away.
+    spawn(type, ctx) { take(type, ctx); },
 
     // True when something dangerous is right behind you (off screen).
     get warning() {

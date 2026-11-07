@@ -70,7 +70,7 @@ export function createHud() {
       hurtT = Math.max(0, hurtT - dt);
       vignette.style.opacity = hurtT > 0 ? '1' : '0';
 
-      const inGarage = s.state === 'garage' || s.state === 'menu';
+      const inGarage = s.state === 'garage' || s.state === 'menu' || s.state === 'ending';
       left.style.display = inGarage ? 'none' : 'flex';
       right.style.display = inGarage ? 'none' : 'flex';
       help.style.display = s.state === 'menu' ? 'none' : '';
@@ -99,10 +99,18 @@ export function createHud() {
         setText(abilityName, a.name);
         abilityFill.style.width = `${(1 - a.cooldownLeft / a.cooldown) * 100}%`;
         ability.classList.toggle('ready', a.cooldownLeft <= 0);
-        setText(abilityHint, a.cooldownLeft > 0 ? `${Math.ceil(a.cooldownLeft)} s` : a.count > 1 ? 'SHIFT · Q to switch' : 'SHIFT');
+        setText(abilityHint, a.cooldownLeft > 0 ? `${Math.ceil(a.cooldownLeft)} s` : a.count > 1 ? `SHIFT · Q or 1–${a.count} to switch` : 'SHIFT');
       }
 
       let html = '';
+      if (s.state === 'ending' && s.ending) {
+        html = `<span class="ending">YOU ARE A COSMIC GOD</span>
+          <small>The Universe Eater is gone. From a dented dirt car to a glowing star — you did it.<br>
+          ${s.ending.pay} · ${s.ending.time}<br>
+          All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
+          Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.<br>
+          Press Enter for the garage</small>`;
+      }
       if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins<br>R: try again · E: garage · Esc: menu (upgrades are kept)</small>`;
       if (html !== lastOverlay) {
         overlay.innerHTML = html;

@@ -18,7 +18,8 @@ import { createAudio } from './audio.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { findItem } from './cosmetics.js';
 import { getLevel, bossBonus, runCoins, LAST_LEVEL } from './levels.js';
-import { ABILITIES, activeAbilities } from './abilities.js';
+import { ABILITIES, activeAbilities, abilityCooldown, abilityDuration } from './abilities.js';
+import { BOUNDS } from './car.js';
 
 const BASE_SPEED = 40;
 const MENU_SPEED = 22;
@@ -34,6 +35,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 document.getElementById('app').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+const DIGITS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'];
 const camera = createCamera();
 
 const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7a5434, 1.3);
@@ -49,6 +51,17 @@ const audio = createAudio();
 const world = createWorld(scene, hemi);
 const car = createCar();
 scene.add(car.group);
+
+// Fire Breath: a cone of flame in front of the car.
+const breathMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+const breathGeo = new THREE.ConeGeometry(4, 40, 20, 1, true);
+breathGeo.translate(0, -20, 0);
+breathGeo.rotateX(-Math.PI / 2); // tip at the car, wide end ahead
+const breath = new THREE.Mesh(breathGeo, breathMat);
+breath.position.z = -3;
+breath.visible = false;
+car.group.add(breath);
+
 const trails = createTrails(scene);
 const sparks = createSparks(scene);
 const booms = createBooms(scene);
@@ -125,6 +138,7 @@ let pausedFrom = 'flying';
 let level = getLevel(progress.level);
 let stats = getStats(progress.levels, progress.best);
 let health = stats.maxHealth;
+let ending = null; // set after beating the final boss
 let invuln = 0, meters = 0, elapsed = 0, runTime = 0, speed = MENU_SPEED, runMat = 0, coinsEarned = 0;
 
 // Abilities: Shift uses the selected active one, Q switches.
@@ -132,6 +146,13 @@ let selected = 0;
 const cooldown = {}; // id -> seconds left
 let shieldT = 0;
 let dashT = 0;
+let warpT = 0; // Warp Jump: untouchable, very fast
+let freezeT = 0; // Hack: enemies and shots frozen
+let slowT = 0; // Slow Time
+let breathT = 0; // Fire Breath
+let breathTick = 0;
+let rainbowT = 0; // Rainbow Shield
+const resetAbilityTimers = () => { shieldT = dashT = warpT = freezeT = slowT = breathT = rainbowT = 0; };
 const actives = () => activeAbilities(progress.best);
 const PLAYING = ['flying', 'boss', 'victory'];
 
@@ -188,8 +209,7 @@ function startRun() {
   speed = BASE_SPEED;
   runMat = 0;
   coinsEarned = 0;
-  shieldT = 0;
-  dashT = 0;
+  resetAbilityTimers();
   for (const id in cooldown) cooldown[id] = 0;
   car.setDash(false);
   trails.reset(car.group.position);
@@ -204,8 +224,8 @@ function startRun() {
 let devGodMode = false; // dev test hook only
 function damage() {
   if (state !== 'flying' && state !== 'boss') return false;
-  if (dashT > 0) return false; // dashing: things pass right through you
-  if (shieldT > 0) {
+  if (dashT > 0 || warpT > 0) return false; // dashing/warping: things pass right through you
+  if (shieldT > 0 || rainbowT > 0) {
     booms.spawn(car.group.position, 0x7fd8ff, 0.6);
     audio.play('block');
     return true;
@@ -234,8 +254,22 @@ function gameOver() {
   save();
 }
 
+// Void creatures and some bosses drag the car toward them.
+function pullCar(from, strength) {
+  if (warpT > 0 || dashT > 0) return;
+  const p = car.group.position;
+  const dt = 1 / 60;
+  p.x += THREE.MathUtils.clamp(from.x - p.x, -1, 1) * strength * dt;
+  p.y += THREE.MathUtils.clamp(from.y - p.y, -1, 1) * strength * dt * 0.6;
+  p.x = THREE.MathUtils.clamp(p.x, -BOUNDS.x, BOUNDS.x);
+  p.y = THREE.MathUtils.clamp(p.y, BOUNDS.yMin, BOUNDS.yMax);
+}
+
 function ctx(time = 0) {
-  return { carPos: car.group.position, speed, elapsed, time, diff: level.n - 1, shots, hit: damage };
+  return {
+    carPos: car.group.position, speed, elapsed, time, diff: Math.min(level.n - 1, 10), shots, hit: damage,
+    pull: pullCar, smash: rainbowT > 0, onKill: () => audio.play('boom'),
+  };
 }
 const hazardCtx = {
   carPos: car.group.position,
@@ -246,16 +280,40 @@ const hazardCtx = {
   flash: () => hud.flash(0.5),
 };
 
+const ABILITY_SOUNDS = { warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield' };
+
 function useAbility() {
   const list = actives();
   if (!list.length) return;
   const id = list[selected % list.length];
   const a = ABILITIES[id];
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
-  cooldown[id] = a.cooldown;
-  audio.play(id);
-  if (id === 'shield') shieldT = a.duration;
-  if (id === 'dash') { dashT = a.duration; car.setDash(true); }
+  cooldown[id] = abilityCooldown(id, progress.best);
+  const dur = abilityDuration(id, progress.best);
+  const pos = car.group.position;
+  audio.play(ABILITY_SOUNDS[id] ?? id);
+  if (id === 'shield') shieldT = dur;
+  if (id === 'dash') { dashT = dur; car.setDash(true); }
+  if (id === 'warp') {
+    warpT = dur;
+    shots.clear();
+    boss.clearShots();
+    hazards.smash(pos, 40, (p, c, sz) => booms.spawn(p, c, sz));
+    booms.spawn(pos, 0xb08aff, 3);
+    hud.flash(0.5);
+  }
+  if (id === 'gravity') {
+    materials.pullAll(1.6);
+    const n = enemies.blast(pos, 30);
+    hazards.smash(pos, 30, (p, c, sz) => booms.spawn(p, c, sz));
+    booms.spawn(pos, 0x8a3aff, 4);
+    if (state === 'boss') boss.hurt(1);
+    hud.banner(n ? `GRAVITY PULL! ${n} crushed` : 'GRAVITY PULL!', 1.2);
+  }
+  if (id === 'hack') { freezeT = dur; hud.banner('HACKED — everything is frozen!', 1.5); }
+  if (id === 'slowtime') { slowT = dur; hud.banner('TIME SLOWED', 1.2); }
+  if (id === 'firebreath') { breathT = dur; breathTick = 0; }
+  if (id === 'rainbow') rainbowT = dur;
   if (id === 'blast') {
     booms.spawn(car.group.position, 0xfff6c0, 5);
     hud.flash(0.4);
@@ -280,6 +338,7 @@ function startBoss() {
 function win() {
   state = 'victory';
   hazards.hide();
+  enemies.hide();
   const earned = runMat + bossBonus(level);
   progress.bank += earned;
   coinsEarned = runCoins(level, meters, true);
@@ -298,7 +357,12 @@ function win() {
   const time = `Time ${formatTime(runTime)}${record ? ' — NEW RECORD!' : ''}`;
   const pay = `+${earned} materials, +${coinsEarned} coins`;
   if (level.n === LAST_LEVEL) {
-    hud.banner(`YOU BEAT THE ${boss.name}! ${pay} · ${time}. More levels come in a later build — press E for the garage`, Infinity);
+    state = 'ending';
+    car.group.visible = true;
+    car.setShield(false, 0);
+    hud.banner('', 0);
+    audio.play('portal');
+    ending = { pay, time, total: Object.values(progress.records).reduce((a, b) => a + b, 0) };
   } else if (firstClear) {
     const next = getLevel(progress.best);
     const ability = Object.values(ABILITIES).find((a) => a.level === next.n);
@@ -320,6 +384,9 @@ function openGarage() {
   portal.close();
   car.group.visible = true;
   car.setShield(false, 0);
+  breath.visible = false;
+  resetAbilityTimers();
+  car.setDash(false);
   car.applyUpgrades(progress.levels);
   car.setTier(progress.best);
   audio.setEngine(false);
@@ -349,7 +416,7 @@ function resume() {
 
 function update(dt, time) {
   car.update(dt, input, time);
-  const target = car.boosting ? stats.boostSpeed : BASE_SPEED;
+  const target = warpT > 0 ? 220 : car.boosting ? stats.boostSpeed : BASE_SPEED;
   speed += (target - speed) * (1 - Math.exp(-3 * dt));
   const boostAmt = Math.min(1, (speed - BASE_SPEED) / (85 - BASE_SPEED));
 
@@ -364,19 +431,44 @@ function update(dt, time) {
   // Abilities
   for (const id in cooldown) cooldown[id] = Math.max(0, cooldown[id] - dt);
   shieldT = Math.max(0, shieldT - dt);
+  warpT = Math.max(0, warpT - dt);
+  freezeT = Math.max(0, freezeT - dt);
+  slowT = Math.max(0, slowT - dt);
+  rainbowT = Math.max(0, rainbowT - dt);
   if (dashT > 0) {
     dashT -= dt;
     if (dashT <= 0) car.setDash(false);
   }
   if (state === 'flying' || state === 'boss') {
     if (input.wasPressed('KeyQ') && actives().length > 1) { selected = (selected + 1) % actives().length; audio.play('ui'); }
+    DIGITS.forEach((code, i) => { if (input.wasPressed(code) && i < actives().length) { selected = i; audio.play('ui'); } });
     if (input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight')) useAbility();
   }
-  car.setShield(shieldT > 0, time);
+  car.setShield(shieldT > 0 || rainbowT > 0, time, rainbowT > 0);
+
+  // Fire Breath burns what's ahead every few frames.
+  breath.visible = breathT > 0;
+  if (breathT > 0) {
+    breathT -= dt;
+    breathMat.opacity = 0.35 + Math.random() * 0.25;
+    breath.scale.set(1 + Math.random() * 0.1, 1 + Math.random() * 0.1, 1);
+    breathTick -= dt;
+    if (breathTick <= 0) {
+      breathTick = 0.15;
+      const pos = car.group.position;
+      enemies.burnAhead(pos);
+      shots.clearAhead(pos);
+      boss.clearShots();
+      hazards.smash(pos, 45, (p, c, sz) => booms.spawn(p, c, sz));
+    }
+    if (state === 'boss' && Math.floor((breathT + dt) / 0.6) !== Math.floor(breathT / 0.6)) boss.hurt(1);
+  }
 
   invuln = Math.max(0, invuln - dt);
   car.group.visible = invuln > 0 ? Math.floor(invuln * 12) % 2 === 0 : true;
-  if (dashT > 0) car.group.visible = Math.floor(time * 30) % 2 === 0;
+  if (dashT > 0 || warpT > 0) car.group.visible = Math.floor(time * 30) % 2 === 0;
+  // Slow Time and Hack slow or stop everything except you.
+  const edt = freezeT > 0 ? 0 : slowT > 0 ? dt * 0.35 : dt;
   meters += speed * dt;
   elapsed += dt;
   if (state !== 'victory') runTime += dt;
@@ -388,14 +480,16 @@ function update(dt, time) {
     audio.play('pickup');
   }
 
-  const started = hazards.update(dt, hazardCtx, state === 'flying');
+  const started = hazards.update(edt, hazardCtx, state === 'flying');
   if (started && HAZARD_WARNINGS[started]) hud.banner(HAZARD_WARNINGS[started], 2);
   if (state === 'over') return;
 
   if (state === 'flying') {
     world.setSkyProgress((runMat / level.goal) * 0.75);
-    enemies.update(dt, ctx(time));
-    shots.update(dt, car.group.position, damage);
+    if (edt > 0) {
+      enemies.update(edt, ctx(time));
+      shots.update(edt, car.group.position, damage);
+    }
     if (state !== 'flying') return;
     if (runMat >= level.goal && !portal.active) {
       portal.open();
@@ -405,7 +499,15 @@ function update(dt, time) {
     if (portal.update(dt, speed)) startBoss();
   } else if (state === 'boss') {
     world.setSkyProgress(0.75 + (1 - boss.hp / boss.maxHp) * 0.25);
-    const ev = boss.update(dt, car.group.position, damage);
+    const ev = boss.update(edt, car.group.position, damage, {
+      spawn: (type) => enemies.spawn(type, ctx(time)),
+      pull: pullCar,
+    });
+    if (edt > 0) {
+      enemies.update(edt, ctx(time), false); // the final boss's minions
+      shots.update(edt, car.group.position, damage);
+    }
+    if (ev.teleport) audio.play('zap');
     if (ev.caught) audio.play('bolt');
     if (ev.hurt) audio.play('boom');
     if (ev.defeated) win();
@@ -446,6 +548,7 @@ function frame() {
   if (state === 'over' && input.wasPressed('KeyR')) startRun();
   else if (state === 'over' && input.wasPressed('KeyE')) openGarage();
   else if (state === 'victory' && input.wasPressed('KeyE')) openGarage();
+  else if (state === 'ending' && (input.wasPressed('Enter') || input.wasPressed('KeyE'))) openGarage();
   else if (state === 'garage') {
     garage.handleKeys(input);
     if (state === 'garage') car.displaySpin(dt, time, innerWidth > 760 ? 2 : 0);
@@ -454,6 +557,7 @@ function frame() {
   if (PLAYING.includes(state)) update(dt, time);
   else if (state === 'menu') updateMenu(dt, time);
   else if (state === 'over') { booms.update(dt); sparks.update(dt); }
+  else if (state === 'ending') updateMenu(dt, time);
 
   const list = actives();
   const abilityId = list.length ? list[selected % list.length] : null;
@@ -469,6 +573,7 @@ function frame() {
     meters,
     timeText: formatTime(runTime),
     coinsEarned,
+    ending,
     warning: enemies.warning,
     bossName: boss.name,
     bossHp: boss.hp,
@@ -507,6 +612,7 @@ if (import.meta.env.DEV) {
     get hazardCount() { return hazards.count; },
     get shieldT() { return shieldT; },
     get dashT() { return dashT; },
+    get timers() { return { warpT, freezeT, slowT, breathT, rainbowT }; },
     progress,
     car,
     enemies,

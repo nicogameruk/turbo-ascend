@@ -15,6 +15,13 @@ const TIERS = {
   5: { color: 0xffc83a, rough: 0.12, metal: 1, emissive: 0x3a2500 },
   6: { color: 0x9fe8ff, rough: 0.05, metal: 0.1, opacity: 0.6, emissive: 0x2299cc },
   7: { color: 0xf6f2ea, rough: 0.3, metal: 0.3, emissive: 0x332a18 },
+  8: { color: 0x3a1a6a, rough: 0.3, metal: 0.5, emissive: 0x2a0a5a },
+  9: { color: 0x0a0a10, rough: 0.15, metal: 0.9 },
+  10: { color: 0x101820, rough: 0.3, metal: 0.7, emissive: 0x050a14 },
+  11: { color: 0x8a6a40, rough: 0.4, metal: 0.5 }, // flickers between the old looks
+  12: { color: 0x6a1a10, rough: 0.6, metal: 0.3, flat: true, emissive: 0x2a0500 },
+  13: { color: 0xffffff, rough: 0.2, metal: 0.3, emissive: 0x222222 }, // colour cycles
+  14: { color: 0xfff2c0, rough: 0.2, metal: 0.2, emissive: 0xffc860, glow: 1.1 },
 };
 
 export function createCar() {
@@ -184,6 +191,85 @@ export function createCar() {
     add(new THREE.BoxGeometry(0.06, 0.06, 4.1), gold, 1.16, 0.2, 0, g);
   }
 
+  const glowParts = []; // animated bits: { mesh, kind }
+  { // 8: twinkling stars on the paint
+    const g = part(8);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const dot = new THREE.SphereGeometry(0.045, 6, 4);
+    for (let i = 0; i < 26; i++) {
+      const m = add(dot, starMat, (Math.random() - 0.5) * 2.1, 0.235, (Math.random() - 0.5) * 4, g);
+      m.castShadow = false;
+      glowParts.push({ mesh: m, kind: 'twinkle', phase: Math.random() * 6 });
+    }
+  }
+  { // 9: glowing ring around the car
+    const g = part(9);
+    const ring = add(new THREE.TorusGeometry(2.4, 0.08, 8, 48), new THREE.MeshBasicMaterial({ color: 0xffa040 }), 0, 0.05, 0, g);
+    ring.rotation.x = Math.PI / 2;
+    ring.scale.set(1, 1.6, 1);
+    ring.castShadow = false;
+    const halo = add(new THREE.TorusGeometry(2.4, 0.3, 8, 48), new THREE.MeshBasicMaterial({ color: 0xff7a20, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }), 0, 0.05, 0, g);
+    halo.rotation.x = Math.PI / 2;
+    halo.scale.set(1, 1.6, 1);
+    halo.castShadow = false;
+    glowParts.push({ mesh: ring, kind: 'spin' });
+  }
+  { // 10: neon lines and a hologram
+    const g = part(10);
+    const cyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const pink = new THREE.MeshBasicMaterial({ color: 0xff2ad8 });
+    for (const x of [-1.16, 1.16]) add(new THREE.BoxGeometry(0.05, 0.05, 4.1), cyan, x, 0.2, 0, g);
+    add(new THREE.BoxGeometry(2.1, 0.05, 0.05), pink, 0, 0.24, -2.05, g);
+    add(new THREE.BoxGeometry(2.1, 0.05, 0.05), pink, 0, 0.24, 2.05, g);
+    const holo = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.OctahedronGeometry(0.35, 0)), new THREE.LineBasicMaterial({ color: 0x00f0ff }));
+    holo.position.set(0, 1.25, 0.3);
+    g.add(holo);
+    glowParts.push({ mesh: holo, kind: 'holo' });
+  }
+  { // 12: dragon scales and wings
+    const g = part(12);
+    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.4, metalness: 0.5, flatShading: true });
+    const sc = new THREE.ConeGeometry(0.16, 0.35, 4);
+    for (let z = -1.6; z <= 1.6; z += 0.4) for (const x of [-0.7, 0, 0.7]) add(sc, scaleMat, x, 0.3, z, g).rotation.x = Math.PI / 2.4;
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, 0);
+    wingShape.lineTo(2.4, 1.2);
+    wingShape.lineTo(2.2, -0.2);
+    wingShape.lineTo(1.4, -0.1);
+    wingShape.lineTo(1.1, -0.8);
+    wingShape.lineTo(0.4, -0.3);
+    wingShape.lineTo(0, -0.9);
+    const wingGeo = new THREE.ShapeGeometry(wingShape);
+    wingGeo.rotateX(-Math.PI / 2);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x8a1a10, roughness: 0.6, side: THREE.DoubleSide });
+    for (const sd of [-1, 1]) {
+      const w = new THREE.Group();
+      w.position.set(sd * 1.1, 0.35, 0.3);
+      w.scale.x = sd;
+      w.add(new THREE.Mesh(wingGeo, wingMat));
+      g.add(w);
+      glowParts.push({ mesh: w, kind: 'flap', side: sd });
+    }
+  }
+  { // 13: prism fins
+    const g = part(13);
+    const prism = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.6, emissive: 0x8888ff, emissiveIntensity: 0.5 });
+    for (const x of [-1.2, 1.2]) add(new THREE.TetrahedronGeometry(0.5, 0), prism, x, 0.4, 1.2, g).scale.set(0.5, 1.4, 1.2);
+    glowParts.push({ mesh: prism, kind: 'rainbowMat' });
+  }
+  { // 14: star glow and orbiting sparks
+    const g = part(14);
+    const aura = add(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffd880, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }), 0, 0.2, 0, g);
+    aura.scale.set(2, 1.2, 3.2);
+    aura.castShadow = false;
+    glowParts.push({ mesh: aura, kind: 'pulse' });
+    for (let i = 0; i < 3; i++) {
+      const sp = add(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), 0, 0, 0, g);
+      sp.castShadow = false;
+      glowParts.push({ mesh: sp, kind: 'orbit', phase: (i / 3) * Math.PI * 2 });
+    }
+  }
+
   // Shield bubble (ability).
   const shieldMat = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const shield = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), shieldMat);
@@ -201,6 +287,42 @@ export function createCar() {
   let tier = 1;
   let paintOverride = null; // shop paint colour, or null for the level look
   let rainbowFlame = false;
+
+  const showParts = (n) => {
+    for (const [k, g] of Object.entries(tierParts)) g.visible = Number(k) === n || (Number(k) === 5 && n === 6);
+  };
+  let flickerAt = -1;
+
+  // Moving bits of the cosmic looks.
+  function animateTier(time) {
+    if (tier === 11) {
+      // Time Warp look: jump between the older looks.
+      const step = Math.floor(time * 2.5);
+      if (step !== flickerAt) {
+        flickerAt = step;
+        const old = 1 + ((step * 5) % 7);
+        const t = TIERS[old];
+        if (paintOverride === null) paint.color.setHex(t.color);
+        paint.metalness = t.metal;
+        paint.roughness = t.rough;
+        showParts(old);
+        mudSplats.forEach((m) => { m.visible = old === 1; });
+      }
+    }
+    if (tier === 13 && paintOverride === null) paint.color.setHSL((time * 0.15) % 1, 0.85, 0.6);
+    for (const gp of glowParts) {
+      if (gp.kind === 'twinkle') gp.mesh.scale.setScalar(0.5 + Math.abs(Math.sin(time * 3 + gp.phase)));
+      if (gp.kind === 'spin') gp.mesh.rotation.z = time * 1.5;
+      if (gp.kind === 'holo') { gp.mesh.rotation.y = time * 2; gp.mesh.position.y = 1.25 + Math.sin(time * 3) * 0.08; }
+      if (gp.kind === 'flap') gp.mesh.rotation.z = gp.side * (0.2 + Math.sin(time * 5) * 0.25);
+      if (gp.kind === 'rainbowMat') gp.mesh.color.setHSL((time * 0.2 + 0.5) % 1, 1, 0.7);
+      if (gp.kind === 'pulse') gp.mesh.material.opacity = 0.14 + Math.sin(time * 4) * 0.05;
+      if (gp.kind === 'orbit') {
+        const a = time * 3 + gp.phase;
+        gp.mesh.position.set(Math.cos(a) * 2, 0.4 + Math.sin(a * 2) * 0.4, Math.sin(a) * 3);
+      }
+    }
+  }
 
   const car = {
     group,
@@ -263,6 +385,7 @@ export function createCar() {
       body.rotation.y = -velocity.x * 0.015;
       body.position.y = Math.sin(time * 3) * 0.06;
       for (const w of wings) w.rotation.z = w.userData.side * (0.15 + Math.sin(time * 4) * 0.12);
+      animateTier(time);
 
       // After running dry, boost stays locked until the tank refills a bit.
       if (car.fuel <= 0) emptyLock = true;
@@ -273,6 +396,8 @@ export function createCar() {
         : Math.min(1, car.fuel + FUEL_REFILL * dt);
     },
 
+    get tier() { return tier; },
+
     // Slowly turn the car around so you can see it in the garage.
     // x: sideways offset so the car isn't hidden behind the garage panel.
     displaySpin(dt, time, x = 0) {
@@ -281,6 +406,7 @@ export function createCar() {
       body.rotation.set(0, 0, 0);
       body.position.y = Math.sin(time * 3) * 0.06;
       car.setFlame(0, time);
+      animateTier(time);
     },
 
     // Change the paint and decorations to a level's look.
@@ -294,10 +420,10 @@ export function createCar() {
       paint.transparent = t.opacity !== undefined;
       paint.opacity = t.opacity ?? 1;
       paint.emissive.setHex(t.emissive ?? 0x000000);
-      paint.emissiveIntensity = t.emissive ? 0.5 : 0;
+      paint.emissiveIntensity = t.emissive ? t.glow ?? 0.5 : 0;
       paint.needsUpdate = true;
       mudSplats.forEach((m) => { m.visible = tier === 1; });
-      for (const [n, g] of Object.entries(tierParts)) g.visible = Number(n) === tier || (Number(n) === 5 && tier === 6);
+      showParts(tier);
     },
 
     // Shop paint: a colour, or null to use the level look.
@@ -318,9 +444,12 @@ export function createCar() {
       if (on) dashDir = velocity.x < 0 ? -1 : 1;
     },
 
-    setShield(on, time) {
+    // rainbow: the Rainbow Shield ability's colour-cycling bubble.
+    setShield(on, time, rainbow = false) {
       shield.visible = on;
       shieldMat.opacity = on ? 0.22 + Math.sin(time * 10) * 0.06 : 0;
+      if (rainbow) shieldMat.color.setHSL((time * 0.8) % 1, 1, 0.6);
+      else shieldMat.color.setHex(0x7fd8ff);
       shield.rotation.y = time;
     },
 

@@ -17,6 +17,27 @@ function featherGeometry() {
   return new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: false });
 }
 
+// Star shard: a chunky 5-point star.
+function starGeometry() {
+  const s = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? 0.28 : 0.7;
+    const a = (i / 10) * Math.PI * 2 + Math.PI / 2;
+    if (i === 0) s.moveTo(Math.cos(a) * r, Math.sin(a) * r); else s.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.25, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 1 });
+  g.center();
+  return g;
+}
+
+// Dragon scale: a flat, pointed hexagon.
+function scaleGeometry() {
+  const g = new THREE.CylinderGeometry(0.6, 0.6, 0.15, 6);
+  g.scale(1, 1, 1.4);
+  g.rotateX(Math.PI / 2);
+  return g;
+}
+
 // What each level's material looks like.
 const LOOKS = {
   1: { geo: () => new THREE.DodecahedronGeometry(0.55, 0), color: 0x6b4423, rough: 0.9, metal: 0, emissive: 0x3b200c, halo: 0xffb347, flat: true },
@@ -26,6 +47,13 @@ const LOOKS = {
   5: { geo: () => new THREE.IcosahedronGeometry(0.5, 1), color: 0xffcc33, rough: 0.15, metal: 1, emissive: 0x6a4a00, halo: 0xffe27a, flat: true },
   6: { geo: () => new THREE.OctahedronGeometry(0.6, 0), color: 0xd8fbff, rough: 0.02, metal: 0.1, emissive: 0x2a9ad0, halo: 0x9ff4ff, flat: true, opacity: 0.8 },
   7: { geo: featherGeometry, color: 0xffffff, rough: 0.5, metal: 0, emissive: 0xaa8833, halo: 0xffe27a },
+  8: { geo: starGeometry, color: 0xfff4b0, rough: 0.2, metal: 0.3, emissive: 0xffc840, halo: 0xffe27a },
+  9: { geo: () => new THREE.SphereGeometry(0.5, 20, 14), color: 0x0a0610, rough: 0.1, metal: 0.9, emissive: 0x3a0a6a, halo: 0xb04aff },
+  10: { geo: () => new THREE.BoxGeometry(0.7, 0.7, 0.7), color: 0x0a1a2a, rough: 0.2, metal: 0.6, emissive: 0x00d8ff, halo: 0xff2ad8 },
+  11: { geo: () => new THREE.OctahedronGeometry(0.5, 0).scale(0.7, 1.6, 0.7), color: 0xffc860, rough: 0.05, metal: 0.2, emissive: 0xa86a10, halo: 0xffd890, flat: true, opacity: 0.85 },
+  12: { geo: scaleGeometry, color: 0x2a8a3a, rough: 0.3, metal: 0.6, emissive: 0x6a1a0a, halo: 0xff6a2a, flat: true },
+  13: { geo: () => new THREE.OctahedronGeometry(0.6, 0), color: 0xffffff, rough: 0.05, metal: 0.1, emissive: 0x888888, halo: 0xffffff, flat: true, rainbow: true },
+  14: { geo: () => new THREE.IcosahedronGeometry(0.55, 1), color: 0xfff8e0, rough: 0.1, metal: 0.4, emissive: 0xffd060, halo: 0xfff0b0, flat: true },
 };
 
 // Floating material you fly into to collect. One look per level.
@@ -58,6 +86,8 @@ export function createMaterialField(scene) {
   };
 
   let timer = 0;
+  let rainbow = false;
+  let pullT = 0; // Gravity Pull ability: drag everything in
   const toCar = new THREE.Vector3();
   return {
     setLook(n) {
@@ -74,7 +104,11 @@ export function createMaterialField(scene) {
       mat.side = n === 7 ? THREE.DoubleSide : THREE.FrontSide;
       mat.needsUpdate = true;
       haloMat.color.setHex(look.halo);
+      rainbow = !!look.rainbow;
     },
+
+    // Pull every piece on screen toward the car for a moment.
+    pullAll(seconds = 1.2) { pullT = seconds; },
 
     reset() {
       chunks.forEach(kill);
@@ -100,12 +134,22 @@ export function createMaterialField(scene) {
         }
       }
 
+      if (rainbow) {
+        mat.color.setHSL((time * 0.3) % 1, 0.9, 0.6);
+        haloMat.color.setHSL((time * 0.3 + 0.5) % 1, 1, 0.6);
+      }
+      pullT = Math.max(0, pullT - dt);
       let got = 0;
       for (const c of chunks) {
         if (!c.alive) continue;
         const p = c.group.position;
         p.z += speed * dt;
-        if (magnet && p.z > -magnet * 2.5 && p.z < 4) {
+        if (pullT > 0) {
+          const k = 1 - Math.exp(-5 * dt);
+          p.x += (carPos.x - p.x) * k;
+          c.baseY += (carPos.y - c.baseY) * k;
+          p.z += (carPos.z - p.z) * k * 1.5;
+        } else if (magnet && p.z > -magnet * 2.5 && p.z < 4) {
           toCar.subVectors(carPos, p);
           const d = toCar.length();
           if (d < magnet) {

@@ -180,8 +180,51 @@ function createLava(scene) {
   };
 }
 
-const FACTORIES = { meteor: createMeteor, lightning: createLightning, lava: createLava };
+// ---------- Asteroid storm: rocks tumbling straight at you ----------
+function createAsteroid(scene) {
+  const rock = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x6a6070, roughness: 0.95, flatShading: true }),
+  );
+  rock.castShadow = true;
+  scene.add(rock);
+  const spin = new THREE.Vector3();
+  let extra = 0;
+  return {
+    group: rock,
+    start({ carPos }) {
+      // Half of them come right at where you are.
+      const aimed = Math.random() < 0.5;
+      rock.position.set(
+        aimed ? carPos.x + rand(-1, 1) : rand(-BOUNDS.x, BOUNDS.x),
+        aimed ? carPos.y + rand(-1, 1) : rand(BOUNDS.yMin, BOUNDS.yMax),
+        -260,
+      );
+      rock.scale.setScalar(rand(0.9, 1.6));
+      spin.set(rand(-2, 2), rand(-2, 2), rand(-2, 2));
+      extra = rand(10, 25);
+      rock.visible = true;
+    },
+    hide() { rock.visible = false; },
+    update(dt, { carPos, speed, hit, boom }) {
+      rock.position.z += (speed + extra) * dt;
+      rock.rotation.x += spin.x * dt;
+      rock.rotation.y += spin.y * dt;
+      rock.rotation.z += spin.z * dt;
+      if (rock.position.distanceTo(carPos) < 1.2 + rock.scale.x * 0.8 && hit()) {
+        boom(rock.position, 0xc8b8a0, 1);
+        return false;
+      }
+      return rock.position.z < 20;
+    },
+  };
+}
+
+const FACTORIES = { meteor: createMeteor, lightning: createLightning, lava: createLava, asteroid: createAsteroid };
 export const HAZARD_WARNINGS = { lava: 'LAVA WALL — fly over it!' };
+
+// Hazards that the Light Blast / Fire Breath can destroy.
+export const BREAKABLE = ['asteroid', 'meteor'];
 
 export function createHazards(scene) {
   const pools = {};
@@ -217,6 +260,18 @@ export function createHazards(scene) {
         if (slot.alive && !slot.h.update(dt, ctx)) kill(slot);
       }
       return started;
+    },
+    // Destroy breakable hazards near a point (abilities).
+    smash(carPos, range, boom) {
+      for (const [type, list] of Object.entries(pools)) {
+        if (!BREAKABLE.includes(type)) continue;
+        for (const slot of list) {
+          if (slot.alive && slot.h.group.position.distanceTo(carPos) < range) {
+            boom(slot.h.group.position, 0xfff0c0, 1.2);
+            kill(slot);
+          }
+        }
+      }
     },
     get count() { return allSlots().filter((s) => s.alive).length; },
   };

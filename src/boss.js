@@ -30,11 +30,13 @@ export function createBoss(scene) {
     body.add(m);
     return m;
   };
-  add(new THREE.BoxGeometry(7, 2.2, 4), hullMat, 0, 0, 0);
-  add(new THREE.BoxGeometry(4, 1.2, 2.6), hullMat, 0, 1.5, -0.3);
-  add(new THREE.BoxGeometry(5, 0.8, 1), dark, 0, -1.3, 1.6);
-  add(new THREE.SphereGeometry(0.8, 24, 16), red, 0, 0.3, 2.05);
-  add(new THREE.TorusGeometry(0.95, 0.15, 10, 32), dark, 0, 0.3, 2.05);
+  const baseHull = [
+    add(new THREE.BoxGeometry(7, 2.2, 4), hullMat, 0, 0, 0),
+    add(new THREE.BoxGeometry(4, 1.2, 2.6), hullMat, 0, 1.5, -0.3),
+    add(new THREE.BoxGeometry(5, 0.8, 1), dark, 0, -1.3, 1.6),
+    add(new THREE.SphereGeometry(0.8, 24, 16), red, 0, 0.3, 2.05),
+    add(new THREE.TorusGeometry(0.95, 0.15, 10, 32), dark, 0, 0.3, 2.05),
+  ];
 
   const rotors = [];
   const pods = []; // hidden for the mothership and the demon
@@ -127,8 +129,144 @@ export function createBoss(scene) {
     put(g, new THREE.SphereGeometry(0.3, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe040 }), 0.9, 1.7, 1.0);
   }
 
+  const additive = (color, opacity = 0.8) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const spinners = []; // { mesh, axis, speed }
+  { // Pirate Flagship: masts, sails, side cannons
+    const g = extra('pirate');
+    const wood = new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: 0.8 });
+    const sail = new THREE.MeshStandardMaterial({ color: 0x1a1020, roughness: 0.9, side: THREE.DoubleSide });
+    for (const z of [-1, 1.2]) {
+      put(g, new THREE.CylinderGeometry(0.15, 0.15, 5, 8), wood, 0, 3.4, z);
+      put(g, new THREE.PlaneGeometry(4, 2.6), sail, 0, 3.8, z + 0.1);
+    }
+    put(g, new THREE.CircleGeometry(0.6, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }), 0, 3.9, 1.35);
+    const gold = new THREE.MeshStandardMaterial({ color: 0xc8a040, metalness: 1, roughness: 0.2 });
+    for (const x of [-3.6, 3.6]) for (const z of [-1, 0.3, 1.6]) put(g, new THREE.CylinderGeometry(0.22, 0.22, 1, 8), gold, x, -0.3, z).rotation.z = Math.PI / 2;
+  }
+  { // Void Leviathan: giant eye and tentacles
+    const g = extra('void');
+    put(g, new THREE.SphereGeometry(3.2, 32, 20), new THREE.MeshStandardMaterial({ color: 0x050308, roughness: 0.2, metalness: 0.9, emissive: 0x1a0630 }), 0, 0.5, 0);
+    put(g, new THREE.SphereGeometry(1.2, 20, 14), new THREE.MeshBasicMaterial({ color: 0xff3aff }), 0, 0.6, 2.6);
+    put(g, new THREE.SphereGeometry(0.5, 12, 8), new THREE.MeshBasicMaterial({ color: 0x000000 }), 0, 0.6, 3.6);
+    const ring = put(g, new THREE.TorusGeometry(4.5, 0.2, 8, 48), additive(0xb04aff, 0.8), 0, 0.5, 0);
+    spinners.push({ mesh: ring, axis: 'z', speed: 1 });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const tnt = put(g, new THREE.CylinderGeometry(0.35, 0.05, 5, 8), new THREE.MeshStandardMaterial({ color: 0x14081e, roughness: 0.4 }), Math.cos(a) * 3.6, Math.sin(a) * 3.6 + 0.5, -0.5);
+      tnt.rotation.z = a - Math.PI / 2;
+      spinners.push({ mesh: tnt, axis: 'wave', speed: 3, phase: i });
+    }
+  }
+  { // Glitch Core: neon wireframe cube cage
+    const g = extra('glitch');
+    for (const sz of [8, 5.5]) {
+      const cage = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(sz, sz * 0.5, sz * 0.7)), new THREE.LineBasicMaterial({ color: sz > 6 ? 0x00f0ff : 0xff2ad8 }));
+      g.add(cage);
+      spinners.push({ mesh: cage, axis: 'y', speed: sz > 6 ? 0.6 : -1 });
+    }
+    put(g, new THREE.BoxGeometry(2, 2, 2), additive(0xff2ad8, 0.5), 0, 0, 0);
+  }
+  { // Chrono Titan: clock face and gears
+    const g = extra('chrono');
+    put(g, new THREE.CircleGeometry(2.4, 40), new THREE.MeshBasicMaterial({ color: 0xfff4d8 }), 0, 0.6, 2.06);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      put(g, new THREE.BoxGeometry(0.12, 0.4, 0.02), new THREE.MeshBasicMaterial({ color: 0x3a2a10 }), Math.sin(a) * 2, 0.6 + Math.cos(a) * 2, 2.08).rotation.z = -a;
+    }
+    const handMat = new THREE.MeshBasicMaterial({ color: 0x1a1008 });
+    const minute = new THREE.Group();
+    minute.position.set(0, 0.6, 2.1);
+    minute.add(put(new THREE.Group(), new THREE.BoxGeometry(0.12, 2, 0.02), handMat, 0, 0.9, 0));
+    minute.children[0].position.y = 0.9;
+    g.add(minute);
+    spinners.push({ mesh: minute, axis: 'z', speed: -2 });
+    const hour = new THREE.Group();
+    hour.position.set(0, 0.6, 2.11);
+    const hh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.3, 0.02), handMat);
+    hh.position.y = 0.6;
+    hour.add(hh);
+    g.add(hour);
+    spinners.push({ mesh: hour, axis: 'z', speed: -0.3 });
+    const brass = new THREE.MeshStandardMaterial({ color: 0xc8963a, metalness: 1, roughness: 0.3 });
+    for (const [x, y, r] of [[-3.6, 1.2, 1.2], [3.6, 1.2, 1.2], [-3, -1.2, 0.8], [3, -1.2, 0.8]]) {
+      const gear = put(g, new THREE.TorusGeometry(r, 0.25, 6, 12), brass, x, y, 1.2);
+      spinners.push({ mesh: gear, axis: 'z', speed: x > 0 ? 1 : -1 });
+    }
+  }
+  { // Elder Dragon: big wings, horns and a long tail
+    const g = extra('dragon');
+    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x5a1a10, roughness: 0.5, metalness: 0.4, flatShading: true });
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, 0);
+    wingShape.lineTo(8, 4);
+    wingShape.lineTo(7.4, -0.5);
+    wingShape.lineTo(5, -0.2);
+    wingShape.lineTo(4, -2.6);
+    wingShape.lineTo(1.6, -1);
+    wingShape.lineTo(0, -2.4);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x8a2010, roughness: 0.7, side: THREE.DoubleSide });
+    for (const sd of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.position.set(sd * 3.2, 1, -0.5);
+      pivot.scale.x = sd;
+      pivot.add(new THREE.Mesh(new THREE.ShapeGeometry(wingShape), wingMat));
+      g.add(pivot);
+      demonWings.push(pivot);
+    }
+    for (const sd of [-1, 1]) put(g, new THREE.ConeGeometry(0.35, 2.6, 8), new THREE.MeshStandardMaterial({ color: 0xe8d8b0 }), sd * 1.4, 2.8, 0.6).rotation.set(-0.5, 0, -sd * 0.3);
+    const tail = put(g, new THREE.ConeGeometry(0.9, 7, 8), scaleMat, 0, -0.3, -5.5);
+    tail.rotation.x = -Math.PI / 2;
+    put(g, new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd030 }), -0.9, 1.5, 2.1);
+    put(g, new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd030 }), 0.9, 1.5, 2.1);
+  }
+  const prismMats = [];
+  { // Prism Wraith: rainbow crystal shards orbiting it
+    const g = extra('prism');
+    for (let i = 0; i < 6; i++) {
+      const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.75, emissive: 0xffffff, emissiveIntensity: 0.4 });
+      prismMats.push(m);
+      const pivot = new THREE.Group();
+      pivot.rotation.z = (i / 6) * Math.PI * 2;
+      const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.9, 0), m);
+      shard.position.set(4.5, 0, 0);
+      shard.scale.set(0.6, 1.8, 0.6);
+      pivot.add(shard);
+      g.add(pivot);
+      spinners.push({ mesh: pivot, axis: 'z', speed: 0.8 });
+    }
+  }
+  const eaterParts = {};
+  { // Universe Eater: a huge maw full of teeth around a swirling core
+    const g = extra('eater');
+    const maw = put(g, new THREE.TorusGeometry(4.2, 1.1, 16, 48), new THREE.MeshStandardMaterial({ color: 0x1a0a2a, roughness: 0.3, metalness: 0.8, emissive: 0x2a0a4a }), 0, 0.5, 1.5);
+    spinners.push({ mesh: maw, axis: 'z', speed: 0.2 });
+    const tooth = new THREE.ConeGeometry(0.35, 1.6, 6);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf0e8ff, roughness: 0.3 });
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      const tt = put(g, tooth, toothMat, Math.cos(a) * 3.3, 0.5 + Math.sin(a) * 3.3, 2);
+      tt.rotation.z = a + Math.PI / 2;
+    }
+    const core = put(g, new THREE.SphereGeometry(2.4, 32, 20), additive(0x8a3aff, 0.75), 0, 0.5, 1);
+    eaterParts.core = core;
+    const inner = put(g, new THREE.SphereGeometry(1.2, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffe8ff }), 0, 0.5, 1.4);
+    eaterParts.inner = inner;
+    for (const r of [6.5, 8.5]) {
+      const ring = put(g, new THREE.TorusGeometry(r, 0.12, 6, 64), additive(r > 7 ? 0x4a8aff : 0xff5ad8, 0.6), 0, 0.5, 0);
+      ring.rotation.x = r > 7 ? 1.2 : 0.4;
+      spinners.push({ mesh: ring, axis: 'y', speed: r > 7 ? 0.5 : -0.8 });
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const tnt = put(g, new THREE.CylinderGeometry(0.45, 0.05, 7, 8), new THREE.MeshStandardMaterial({ color: 0x2a0a3a, roughness: 0.4, emissive: 0x1a0030 }), Math.cos(a) * 5.2, 0.5 + Math.sin(a) * 5.2, -1.5);
+      tnt.rotation.z = a - Math.PI / 2;
+      spinners.push({ mesh: tnt, axis: 'wave', speed: 2, phase: i });
+    }
+  }
+
   const cannonGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.6, 16);
   cannonGeo.rotateX(Math.PI / 2);
+  const hullParts = []; // the boxy hull, hidden for round bosses
   const muzzles = [];
   for (const x of [-2.2, 2.2]) {
     add(cannonGeo, dark, x, -1.2, 2.4);
@@ -204,6 +342,14 @@ export function createBoss(scene) {
   const clearAll = () => { shots.forEach(kill); bolts.forEach(kill); booms.forEach(kill); };
 
   let cfg = { name: 'SCRAP HAULER', hp: 6, hull: 0x6d5a48, fireEvery: 1.4, extra: null };
+  let patterns = [];
+  let homeZ = HOME_Z;
+  let specialT = 0; // timer for the level's special attack
+  let minionT = 0;
+  let breathT = -1;
+  let breathDir = 1;
+  let teleportFlash = 0;
+  const ringCenter = new THREE.Vector3();
   let level = 1;
   let maxHp = 6;
   let hp = maxHp;
@@ -231,9 +377,15 @@ export function createBoss(scene) {
       hullMat.metalness = cfg.metal ? 1 : 0.5;
       hullMat.roughness = cfg.metal ? 0.15 : 0.6;
       for (const [name, g] of Object.entries(extras)) g.visible = name === cfg.extra;
-      const noPods = cfg.extra === 'saucer' || cfg.extra === 'demon';
+      const noPods = ['saucer', 'demon', 'void', 'dragon', 'prism', 'eater', 'glitch'].includes(cfg.extra);
       pods.forEach((m) => { m.visible = !noPods; });
       rotors.forEach((m) => { m.visible = !noPods; });
+      const noHull = ['void', 'eater'].includes(cfg.extra);
+      baseHull.forEach((m) => { m.visible = !noHull; });
+      patterns = cfg.patterns ?? [];
+      // The final boss is huge and keeps further away.
+      group.scale.setScalar(cfg.final ? 1.7 : 1);
+      homeZ = cfg.final ? -62 : HOME_Z;
     },
 
     // Hit by something other than a bolt (light blast).
@@ -255,6 +407,9 @@ export function createBoss(scene) {
       done = false;
       fireT = 1.5;
       coreT = 2.5;
+      specialT = 4;
+      minionT = 6;
+      breathT = -1;
       clearAll();
       group.visible = true;
       group.position.set(0, 5, ENTER_Z);
@@ -270,10 +425,22 @@ export function createBoss(scene) {
     },
 
     // damage(): asks the game to hurt the player; returns true if it landed.
-    update(dt, carPos, damage) {
+    // hooks: { spawn(type), pull(fromPos, strength) } for minions and pulling attacks.
+    update(dt, carPos, damage, hooks = {}) {
       const ev = { defeated: false };
       if (!group.visible && done) return ev;
       t += dt;
+      for (const sp of spinners) {
+        if (sp.axis === 'wave') sp.mesh.scale.y = 1 + Math.sin(t * sp.speed + sp.phase) * 0.2;
+        else sp.mesh.rotation[sp.axis] += dt * sp.speed;
+      }
+      prismMats.forEach((m, i) => { m.color.setHSL((t * 0.2 + i / 6) % 1, 1, 0.6); m.emissive.setHSL((t * 0.2 + i / 6) % 1, 1, 0.3); });
+      if (eaterParts.core) {
+        eaterParts.core.scale.setScalar(1 + Math.sin(t * 3) * 0.1);
+        eaterParts.inner.scale.setScalar(1 + Math.sin(t * 7) * 0.15);
+      }
+      teleportFlash = Math.max(0, teleportFlash - dt);
+      body.visible = teleportFlash <= 0 || Math.floor(t * 30) % 2 === 0;
       for (const r of rotors) r.rotation.y += dt * 30;
       demonWings.forEach((w) => { w.rotation.y = Math.sin(t * 5) * 0.4; });
       if (cfg.extra === 'sirens') {
@@ -313,11 +480,11 @@ export function createBoss(scene) {
       // Movement: swoop in, then drift side to side and turn toward the car.
       const p = group.position;
       if (entering) {
-        p.z += (HOME_Z - p.z) * (1 - Math.exp(-2 * dt));
-        if (Math.abs(p.z - HOME_Z) < 1) entering = false;
+        p.z += (homeZ - p.z) * (1 - Math.exp(-2 * dt));
+        if (Math.abs(p.z - homeZ) < 1) entering = false;
       }
       const k = 1 - Math.exp(-2 * dt);
-      const tx = Math.sin(t * 0.6) * 6;
+      const tx = Math.sin(t * 0.6) * (cfg.final ? 4 : 6);
       const ty = 5 + Math.sin(t * 0.9) * 1.5;
       p.x += (tx - p.x) * k;
       p.y += (ty - p.y) * k;
@@ -337,9 +504,59 @@ export function createBoss(scene) {
           const spread = phase2 ? (level >= 5 ? [-4, -2, 0, 2, 4] : [-2.5, 0, 2.5]) : level >= 3 ? [-1.8, 1.8] : [0];
           for (const off of spread) {
             const target = new THREE.Vector3(carPos.x + off, carPos.y + rand(-0.5, 0.5), carPos.z);
-            spawnOfKind('red', from, target, RED_SPEED + level * 1.5);
+            spawnOfKind('red', from, target, RED_SPEED + Math.min(level, 10) * 1.5);
           }
         }
+        // Special attacks for the later bosses.
+        const third = hp / maxHp;
+        specialT -= dt;
+        if (patterns.includes('ring') && specialT <= 0) {
+          // A ring of shots that lands around the middle of the screen: stay in the middle, or get outside it.
+          specialT = cfg.final ? (third < 0.34 ? 3 : 4) : 5.5;
+          ringCenter.set(rand(-1.5, 1.5), 4, 0);
+          const n = cfg.final ? 14 : 10;
+          const off = Math.random() * Math.PI;
+          for (let i = 0; i < n; i++) {
+            const a = off + (i / n) * Math.PI * 2;
+            spawnOfKind('red', p, new THREE.Vector3(ringCenter.x + Math.cos(a) * 5, ringCenter.y + Math.sin(a) * 3.4, 0), RED_SPEED + 4);
+          }
+          ev.ring = true;
+        }
+        if (patterns.includes('slow') && Math.floor((t - dt) / 3) !== Math.floor(t / 3)) {
+          // Chrono Titan: a spiral of shots, like a clock hand sweeping round.
+          for (let i = 0; i < 8; i++) {
+            const a = t * 2 + i * 0.8;
+            spawnOfKind('red', p, new THREE.Vector3(Math.cos(a) * 5, 4 + Math.sin(a) * 3, 0), RED_SPEED - 4 + i * 1.2);
+          }
+        }
+        if (patterns.includes('teleport') && Math.floor((t - dt) / 4.5) !== Math.floor(t / 4.5)) {
+          p.x = rand(-7, 7);
+          p.y = rand(3, 7);
+          teleportFlash = 0.4;
+          ev.teleport = true;
+        }
+        if (patterns.includes('breath')) {
+          if (breathT < 0 && Math.floor((t - dt) / 6) !== Math.floor(t / 6)) { breathT = 0; breathDir = Math.random() < 0.5 ? -1 : 1; }
+          if (breathT >= 0) {
+            breathT += dt;
+            if (Math.floor((breathT - dt) / 0.08) !== Math.floor(breathT / 0.08)) {
+              spawnOfKind('red', p, new THREE.Vector3(breathDir * (breathT / 1.8 - 0.5) * 14, carPos.y + rand(-0.6, 0.6), 0), RED_SPEED);
+            }
+            if (breathT > 1.8) breathT = -1;
+          }
+        }
+        if (patterns.includes('minions') && third < 0.67) {
+          minionT -= dt;
+          if (minionT <= 0) {
+            minionT = third < 0.34 ? 4 : 6;
+            hooks.spawn?.(Math.random() < 0.5 ? 'spirit' : 'demon');
+            ev.minion = true;
+          }
+        }
+        if (patterns.includes('pull') && (!cfg.final || third < 0.34)) {
+          hooks.pull?.(p, cfg.final ? 3 : 2);
+        }
+
         coreT -= dt;
         if (coreT <= 0) {
           coreT = 2.0;
@@ -366,7 +583,7 @@ export function createBoss(scene) {
         const bp = b.mesh.position;
         tmp.subVectors(p, bp);
         const dist = tmp.length();
-        if (dist < 3) {
+        if (dist < 3 * group.scale.x) {
           kill(b);
           hp -= 1;
           ev.hurt = true;

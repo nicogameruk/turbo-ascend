@@ -55,6 +55,14 @@ export function createShots(scene) {
     },
 
     clear() { shots.forEach(kill); },
+    // Fire Breath: burn shots in front of the car.
+    clearAhead(carPos, range = 80) {
+      for (const s of shots) {
+        if (!s.alive) continue;
+        const p = s.mesh.position;
+        if (p.z < carPos.z + 1 && p.z > carPos.z - range && Math.abs(p.x - carPos.x) < 6 && Math.abs(p.y - carPos.y) < 5) kill(s);
+      }
+    },
     get active() { return shots.filter((s) => s.alive).length; },
   };
 }
