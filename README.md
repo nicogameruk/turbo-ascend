@@ -2,6 +2,8 @@
 
 A 3D flying-car escape game that runs in the browser. Fly through 14 levels, collect materials, beat each boss, and upgrade your car from a dented dirt racer into a glowing cosmic machine.
 
+**▶ Play it: https://nicogameruk.github.io/turbo-ascend/**
+
 Built with [three.js](https://threejs.org) and [Vite](https://vite.dev). All models, textures, sound and music are generated in code, so there are no asset files.
 
 ## Controls
