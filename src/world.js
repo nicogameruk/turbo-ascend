@@ -3,7 +3,6 @@ import * as THREE from 'three';
 const FAR_Z = -340; // where scenery respawns
 const NEAR_Z = 30; // past the camera: recycle
 const SPAN = NEAR_Z - FAR_Z;
-const HORIZON = 0xcfe8ff;
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -22,66 +21,73 @@ function gradientTexture(top, bottom) {
   return tex;
 }
 
-function dirtTexture() {
+// Speckled ground with furrows, coloured by the level's palette.
+function groundTexture({ base, hue, sat, light, furrow }) {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const g = c.getContext('2d');
-  g.fillStyle = '#8a6440';
+  g.fillStyle = base;
   g.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 900; i++) {
     const s = rand(2, 14);
-    g.fillStyle = `hsl(${rand(22, 34)}, ${rand(30, 45)}%, ${rand(22, 42)}%)`;
+    g.fillStyle = `hsl(${rand(...hue)}, ${rand(...sat)}%, ${rand(...light)}%)`;
     g.globalAlpha = rand(0.3, 0.8);
     g.fillRect(rand(0, 256), rand(0, 256), s, s);
   }
   g.globalAlpha = 0.35;
-  g.fillStyle = '#4a321c';
-  for (let x = 0; x < 256; x += 32) g.fillRect(x, 0, 5, 256); // furrows
+  g.fillStyle = furrow;
+  for (let x = 0; x < 256; x += 32) g.fillRect(x, 0, 5, 256);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   return tex;
 }
 
-export function createWorld(scene) {
-  scene.background = gradientTexture('#3b86f0', '#cfe8ff');
-  scene.fog = new THREE.Fog(HORIZON, 90, 330);
+// Ground scenery shapes. Each is a unit-ish shape with its base at y = -0.5.
+const SHAPES = {
+  rock: new THREE.DodecahedronGeometry(1, 0),
+  tree: new THREE.ConeGeometry(0.6, 1, 7),
+  tower: new THREE.BoxGeometry(0.6, 1, 0.6),
+  crystal: new THREE.OctahedronGeometry(0.7, 0),
+  pillar: new THREE.CylinderGeometry(0.3, 0.34, 1, 14),
+};
 
-  // Dirt ground far below; its texture scrolls to show speed.
+export function createWorld(scene, hemi) {
+  scene.fog = new THREE.Fog(0xffffff, 90, 330);
+
+  // Ground far below; its texture scrolls to show speed.
   const GROUND_SIZE = 900;
   const GROUND_REPEAT = 45;
-  const groundTex = dirtTexture();
-  groundTex.repeat.set(GROUND_REPEAT, GROUND_REPEAT);
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }),
-  );
+  const groundMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, -30, -300);
   scene.add(ground);
 
   const movers = []; // { obj, place(obj) }
 
-  // Rock spires on the ground for parallax.
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x7a5434, roughness: 0.95, flatShading: true });
-  const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+  // Scenery on the ground for parallax (rocks, trees, towers, crystals, pillars).
+  const propMat = new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true });
+  const props = [];
   for (let i = 0; i < 40; i++) {
-    const rock = new THREE.Mesh(rockGeo, rockMat);
+    const prop = new THREE.Mesh(SHAPES.rock, propMat);
     const place = (o) => {
       const side = Math.random() < 0.5 ? -1 : 1;
       o.position.x = side * rand(14, 140);
       const h = rand(4, 22);
-      o.scale.set(rand(3, 8), h, rand(3, 8));
+      const w = o.userData.thin ? rand(3, 5) : rand(3, 8);
+      o.scale.set(w, h, o.userData.thin ? w : rand(3, 8));
       o.position.y = -30 + h * 0.5;
     };
-    place(rock);
-    rock.position.z = rand(FAR_Z, NEAR_Z);
-    scene.add(rock);
-    movers.push({ obj: rock, place });
+    place(prop);
+    prop.position.z = rand(FAR_Z, NEAR_Z);
+    scene.add(prop);
+    props.push({ obj: prop, place });
+    movers.push({ obj: prop, place });
   }
 
   // Puffy clouds (built from spheres). Mostly to the sides, sometimes in your path.
-  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, emissive: 0x8899aa, emissiveIntensity: 0.25 });
+  const cloudMat = new THREE.MeshStandardMaterial({ roughness: 1, emissiveIntensity: 0.25 });
   const puffGeo = new THREE.IcosahedronGeometry(1, 2);
   for (let i = 0; i < 34; i++) {
     const cloud = new THREE.Group();
@@ -104,10 +110,48 @@ export function createWorld(scene) {
     movers.push({ obj: cloud, place });
   }
 
+  let groundTex = null;
+  let skyTex = null;
+
   return {
+    // Repaint the world for a level.
+    setTheme(level) {
+      skyTex?.dispose();
+      skyTex = gradientTexture(...level.sky);
+      scene.background = skyTex;
+      scene.fog.color.setHex(level.fog);
+      hemi.color.setHex(level.hemi[0]);
+      hemi.groundColor.setHex(level.hemi[1]);
+
+      groundTex?.dispose();
+      groundTex = groundTexture(level.ground);
+      groundTex.repeat.set(GROUND_REPEAT, GROUND_REPEAT);
+      groundMat.map = groundTex;
+      groundMat.needsUpdate = true;
+
+      const s = level.scenery;
+      propMat.color.setHex(s.color);
+      propMat.metalness = s.metal ? 0.8 : 0;
+      propMat.roughness = s.metal ? 0.35 : s.shape === 'crystal' ? 0.15 : 0.95;
+      propMat.emissive.setHex(s.glow ?? 0x000000);
+      propMat.emissiveIntensity = s.glow ? 0.5 : 0;
+      propMat.flatShading = s.shape !== 'pillar';
+      propMat.needsUpdate = true;
+      for (const { obj, place } of props) {
+        obj.geometry = SHAPES[s.shape];
+        obj.userData.thin = s.shape === 'tree' || s.shape === 'pillar' || s.shape === 'tower';
+        const z = obj.position.z;
+        place(obj);
+        obj.position.z = z;
+      }
+
+      cloudMat.color.setHex(level.cloud.color);
+      cloudMat.emissive.setHex(level.cloud.emissive);
+    },
+
     update(dt, speed) {
       const dz = speed * dt;
-      groundTex.offset.y += dz / (GROUND_SIZE / GROUND_REPEAT);
+      if (groundTex) groundTex.offset.y += dz / (GROUND_SIZE / GROUND_REPEAT);
       for (const { obj, place } of movers) {
         obj.position.z += dz;
         if (obj.position.z > NEAR_Z) {

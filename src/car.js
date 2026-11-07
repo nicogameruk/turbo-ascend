@@ -4,7 +4,18 @@ import * as THREE from 'three';
 export const BOUNDS = { x: 6, yMin: 0.5, yMax: 7.5 };
 const FUEL_REFILL = 0.15; // per second while not boosting
 const RELOCK_LEVEL = 0.2; // fuel needed to boost again after running dry
-const GLOW_COLORS = [0x5fe4ff, 0x8af0ff, 0xc8f8ff, 0xffffff];
+const GLOW_COLORS = [0x5fe4ff, 0x8af0ff, 0xc8f8ff, 0xe6fcff, 0xb8a8ff, 0xffffff];
+
+// Car look for each level tier (1 = Dirt ... 7 = Angel).
+const TIERS = {
+  1: { color: 0xa0582c, rough: 0.5, metal: 0.35 },
+  2: { color: 0x3f9b4a, rough: 0.45, metal: 0.2 },
+  3: { color: 0x8b8d90, rough: 0.9, metal: 0.05, flat: true },
+  4: { color: 0xb8c0c8, rough: 0.22, metal: 0.95 },
+  5: { color: 0xffc83a, rough: 0.12, metal: 1, emissive: 0x3a2500 },
+  6: { color: 0x9fe8ff, rough: 0.05, metal: 0.1, opacity: 0.6, emissive: 0x2299cc },
+  7: { color: 0xf6f2ea, rough: 0.3, metal: 0.3, emissive: 0x332a18 },
+};
 
 export function createCar() {
   const group = new THREE.Group();
@@ -35,9 +46,11 @@ export function createCar() {
   box(2.5, 0.08, 0.5, dark, 0, 0.66, 2.0); // spoiler
   box(0.12, 0.4, 0.12, dark, -0.8, 0.42, 2.0);
   box(0.12, 0.4, 0.12, dark, 0.8, 0.42, 2.0);
-  box(0.7, 0.04, 0.9, mud, -0.5, 0.24, -1.3); // mud splats
-  box(0.5, 0.04, 0.5, mud, 0.65, 0.24, 1.1);
-  box(0.4, 0.05, 0.3, mud, 0.3, -0.03, -3.05);
+  const mudSplats = [
+    box(0.7, 0.04, 0.9, mud, -0.5, 0.24, -1.3),
+    box(0.5, 0.04, 0.5, mud, 0.65, 0.24, 1.1),
+    box(0.4, 0.05, 0.3, mud, 0.3, -0.03, -3.05),
+  ];
   box(0.45, 0.12, 0.04, headlight, -0.7, 0, -3.11);
   box(0.45, 0.12, 0.04, headlight, 0.7, 0, -3.11);
 
@@ -100,8 +113,87 @@ export function createCar() {
     box(1.3, 0.08, 1.2, steel, 0, 0.7, 0.3), // roof plate
     box(2.2, 0.2, 0.25, steel, 0, -0.2, -3.15), // front bumper
   ];
+  const armor3 = [
+    box(2.4, 0.2, 0.25, steel, 0, -0.15, 2.15), // rear bumper
+    box(0.08, 0.5, 1.6, steel, -0.78, 0.45, 0.3), // cockpit guards
+    box(0.08, 0.5, 1.6, steel, 0.78, 0.45, 0.3),
+  ];
+
+  // Tier decorations, shown by setTier().
+  const tierParts = {};
+  const part = (tier) => {
+    const g = new THREE.Group();
+    body.add(g);
+    tierParts[tier] = g;
+    return g;
+  };
+  { // 2: moss tufts and a vine stripe
+    const g = part(2);
+    const moss = new THREE.MeshStandardMaterial({ color: 0x2f6b2a, roughness: 1, flatShading: true });
+    const tuft = new THREE.IcosahedronGeometry(0.22, 0);
+    for (const [x, z] of [[-0.8, -1.6], [0.7, -0.9], [-0.6, 1.3], [0.85, 1.6], [0.1, -2.6]]) add(tuft, moss, x, 0.25, z, g).scale.set(1.3, 0.5, 1);
+    add(new THREE.BoxGeometry(0.2, 0.03, 4), new THREE.MeshStandardMaterial({ color: 0x1f5a1c, roughness: 0.8 }), 0, 0.235, -0.3, g);
+  }
+  { // 3: rough stone armour plates
+    const g = part(3);
+    const stone = new THREE.MeshStandardMaterial({ color: 0x6c6e72, roughness: 1, flatShading: true });
+    const plate = new THREE.DodecahedronGeometry(0.4, 0);
+    for (const [x, y, z] of [[-1.2, 0.05, -1.2], [1.2, 0.05, -1.2], [-1.2, 0.05, 0.9], [1.2, 0.05, 0.9], [0, 0.25, -1.9]]) add(plate, stone, x, y, z, g).scale.set(0.5, 0.6, 1.4);
+  }
+  { // 4: rivets along the sides
+    const g = part(4);
+    const rivet = new THREE.SphereGeometry(0.06, 8, 6);
+    const rivetMat = new THREE.MeshStandardMaterial({ color: 0x5c636b, roughness: 0.3, metalness: 1 });
+    for (let z = -1.8; z <= 1.8; z += 0.45) for (const x of [-1.16, 1.16]) add(rivet, rivetMat, x, 0.12, z, g);
+  }
+  { // 5: glowing gold trim lines (kept for the diamond look too)
+    const g = part(5);
+    const trim = new THREE.MeshBasicMaterial({ color: 0xfff0a0 });
+    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), trim, -1.16, 0.2, 0, g);
+    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), trim, 1.16, 0.2, 0, g);
+  }
+  { // 6: crystal spikes
+    const g = part(6);
+    const crystal = new THREE.MeshStandardMaterial({ color: 0xdffaff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.75, emissive: 0x44bbee, emissiveIntensity: 0.6 });
+    const spike = new THREE.OctahedronGeometry(0.3, 0);
+    for (const [x, z] of [[-1.25, -0.6], [1.25, -0.6], [-1.25, 0.6], [1.25, 0.6]]) add(spike, crystal, x, 0.35, z, g).scale.set(0.6, 1.6, 0.6);
+    add(spike, crystal, 0, 0.75, 1.2, g).scale.set(0.5, 1.2, 0.5);
+  }
+  const wings = [];
+  { // 7: feathered wings and a halo
+    const g = part(7);
+    const feather = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, emissive: 0x887755, emissiveIntensity: 0.3 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffcc55, roughness: 0.2, metalness: 1, emissive: 0x664400, emissiveIntensity: 0.5 });
+    const featherGeo = new THREE.BoxGeometry(1, 0.05, 0.32);
+    for (const s of [-1, 1]) {
+      const wing = new THREE.Group();
+      wing.position.set(s * 1.1, 0.3, 0.5);
+      for (let i = 0; i < 4; i++) {
+        const f = add(featherGeo, feather, s * (0.5 + i * 0.12), 0, i * 0.28 - 0.3, wing);
+        f.scale.x = 1.6 - i * 0.25;
+        f.rotation.y = s * (0.15 + i * 0.12);
+      }
+      wing.userData.side = s;
+      g.add(wing);
+      wings.push(wing);
+    }
+    const halo = add(new THREE.TorusGeometry(0.55, 0.06, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffe27a }), 0, 1.15, 0.3, g);
+    halo.rotation.x = Math.PI / 2;
+    halo.castShadow = false;
+    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), gold, -1.16, 0.2, 0, g);
+    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), gold, 1.16, 0.2, 0, g);
+  }
+
+  // Shield bubble (ability).
+  const shieldMat = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const shield = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), shieldMat);
+  shield.scale.set(2.2, 1.3, 3.4);
+  shield.visible = false;
+  group.add(shield);
 
   const velocity = new THREE.Vector2();
+  let steerMult = 1;
+  let dashDir = 0;
   let emptyLock = false;
   let steerSpeed = 13;
   let fuelDrain = 0.35;
@@ -129,29 +221,31 @@ export function createCar() {
 
     // Show the parts for each upgrade level.
     applyUpgrades(levels) {
-      const tankScale = 1 + 0.25 * Math.max(0, levels.tank - 1);
+      const tankScale = 1 + 0.15 * Math.max(0, levels.tank - 1);
       for (const t of tanks) {
         t.visible = levels.tank > 0;
         t.scale.set(tankScale, tankScale, 1);
       }
-      tankMat.emissiveIntensity = levels.tank >= 3 ? 0.6 : 0;
+      tankMat.emissiveIntensity = levels.tank >= 3 ? 0.3 + 0.2 * (levels.tank - 3) : 0;
       armor1.forEach((m) => { m.visible = levels.armor >= 1; });
       armor2.forEach((m) => { m.visible = levels.armor >= 2; });
+      armor3.forEach((m) => { m.visible = levels.armor >= 3; });
       const discScale = 1 + 0.25 * levels.thrusters;
       glowDiscs.forEach((d) => d.scale.set(discScale, 1, discScale));
       thrusterRings.forEach((r) => { r.visible = levels.thrusters >= 2; });
-      glow.color.setHex(GLOW_COLORS[levels.thrusters]);
-      nozzles.slice(0, 2).forEach((n) => n.scale.setScalar(levels.booster >= 1 ? 1.25 : 1));
+      glow.color.setHex(GLOW_COLORS[Math.min(levels.thrusters, GLOW_COLORS.length - 1)]);
+      nozzles.slice(0, 2).forEach((n) => n.scale.setScalar(levels.booster >= 3 ? 1.4 : levels.booster >= 1 ? 1.25 : 1));
       topBooster.visible = levels.booster >= 2;
-      flamePower = 1 + 0.3 * levels.booster;
+      flamePower = 1 + 0.25 * levels.booster;
     },
 
     update(dt, input, time) {
-      const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
       const dy = (input.up ? 1 : 0) - (input.down ? 1 : 0);
-      const k = 1 - Math.exp(-7 * dt);
-      velocity.x += (dx * steerSpeed - velocity.x) * k;
-      velocity.y += (dy * steerSpeed - velocity.y) * k;
+      if (steerMult > 1 && dx === 0 && dy === 0) dx = dashDir; // dash with no key held: keep going sideways
+      const k = 1 - Math.exp(-(steerMult > 1 ? 20 : 7) * dt);
+      velocity.x += (dx * steerSpeed * steerMult - velocity.x) * k;
+      velocity.y += (dy * steerSpeed * steerMult - velocity.y) * k;
 
       const p = group.position;
       p.x += velocity.x * dt;
@@ -165,6 +259,7 @@ export function createCar() {
       body.rotation.x = velocity.y * 0.03;
       body.rotation.y = -velocity.x * 0.015;
       body.position.y = Math.sin(time * 3) * 0.06;
+      for (const w of wings) w.rotation.z = w.userData.side * (0.15 + Math.sin(time * 4) * 0.12);
 
       // After running dry, boost stays locked until the tank refills a bit.
       if (car.fuel <= 0) emptyLock = true;
@@ -185,6 +280,34 @@ export function createCar() {
       car.setFlame(0, time);
     },
 
+    // Change the paint and decorations to a level's look.
+    setTier(tier) {
+      const t = TIERS[tier] ?? TIERS[1];
+      paint.color.setHex(t.color);
+      paint.roughness = t.rough;
+      paint.metalness = t.metal;
+      paint.flatShading = !!t.flat;
+      paint.transparent = t.opacity !== undefined;
+      paint.opacity = t.opacity ?? 1;
+      paint.emissive.setHex(t.emissive ?? 0x000000);
+      paint.emissiveIntensity = t.emissive ? 0.5 : 0;
+      paint.needsUpdate = true;
+      mudSplats.forEach((m) => { m.visible = tier === 1; });
+      for (const [n, g] of Object.entries(tierParts)) g.visible = Number(n) === tier || (Number(n) === 5 && tier === 6);
+    },
+
+    // Dash ability: steer much faster for a moment.
+    setDash(on) {
+      steerMult = on ? 2.8 : 1;
+      if (on) dashDir = velocity.x < 0 ? -1 : 1;
+    },
+
+    setShield(on, time) {
+      shield.visible = on;
+      shieldMat.opacity = on ? 0.22 + Math.sin(time * 10) * 0.06 : 0;
+      shield.rotation.y = time;
+    },
+
     // amount: 0 (cruise) .. 1 (full boost)
     setFlame(amount, time) {
       const flicker = 1 + Math.sin(time * 40) * 0.08 + Math.sin(time * 23) * 0.06;
@@ -199,6 +322,7 @@ export function createCar() {
   };
 
   car.applyUpgrades({ tank: 0, armor: 0, thrusters: 0, booster: 0 });
+  car.setTier(1);
   car.reset();
   return car;
 }

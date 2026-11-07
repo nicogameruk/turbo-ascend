@@ -41,3 +41,35 @@ export function createSpeedLines(scene) {
     },
   };
 }
+
+// Quick glowing explosion puffs.
+export function createBooms(scene) {
+  const geo = new THREE.SphereGeometry(1, 16, 12);
+  const booms = [];
+  return {
+    spawn(pos, color = 0xffa040, size = 1) {
+      let b = booms.find((x) => !x.alive);
+      if (!b) {
+        const mat = new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+        b = { mesh: new THREE.Mesh(geo, mat), mat };
+        scene.add(b.mesh);
+        booms.push(b);
+      }
+      b.alive = true;
+      b.age = 0;
+      b.size = size;
+      b.mat.color.setHex(color);
+      b.mesh.visible = true;
+      b.mesh.position.copy(pos);
+    },
+    update(dt) {
+      for (const b of booms) {
+        if (!b.alive) continue;
+        b.age += dt;
+        b.mesh.scale.setScalar((0.5 + b.age * 9) * b.size);
+        b.mat.opacity = Math.max(0, 1 - b.age * 2);
+        if (b.age > 0.5) { b.alive = false; b.mesh.visible = false; }
+      }
+    },
+  };
+}
