@@ -353,6 +353,28 @@ export const LEVELS = [
     music: { root: 60, scale: MAJOR, tempo: 132, lead: 'triangle' },
     ability: 'scribble',
   },
+  // ---- The Impossible level: one heart, every enemy, every hazard ----
+  {
+    n: 27, name: 'Impossible', material: 'Impossible Shards', goal: 80, space: true, landmark: 'blackhole',
+    oneHeart: true, // only 1 heart here, whatever your upgrades
+    sky: ['#000000', '#2a0006'], sky2: ['#0a0000', '#5a0010'], fog: 0x14000a, hemi: [0xffd8d8, 0x14000a],
+    ground: null,
+    scenery: { shape: 'crystal', color: 0x1a0004, float: true, glow: 0xff1a3a },
+    cloud: { color: 0xff1a3a, emissive: 0x6a0010, opacity: 0.3 },
+    enemies: {
+      chasers: 3,
+      waves: [
+        { type: 'bat', every: [2, 3.5], max: 3 }, { type: 'spirit', every: [4, 6], max: 2 }, { type: 'shark', every: [6, 9], max: 1 },
+        { type: 'dragon', every: [9, 12], max: 1 }, { type: 'sniper', every: [7, 10], max: 1 }, { type: 'glitch', every: [7, 10], max: 1 },
+        { type: 'void', every: [10, 13], max: 1 }, { type: 'jet', every: [5, 8], max: 2 }, { type: 'demon', every: [8, 11], max: 1 },
+      ],
+    },
+    hazards: [{ type: 'asteroid', every: [2, 3] }, { type: 'meteor', every: [4, 6] }, { type: 'lightning', every: [5, 7] }, { type: 'lava', every: [8, 11] }],
+    warnings: { lava: 'WALL OF DOOM — fly over it!', lightning: 'IMPOSSIBLE LIGHTNING!' },
+    boss: { name: 'THE IMPOSSIBLE', hp: 70, hull: 0x1a0004, fireEvery: 0.4, extra: 'eater', minion: 'bat', patterns: ['ring', 'minions', 'pull', 'breath', 'slow', 'teleport'] },
+    music: { root: 37, scale: PHRYGIAN, tempo: 168, lead: 'sawtooth' },
+    ability: 'chaos',
+  },
 ];
 
 // Colour and icon for each level's pop-ups (like "ability ready").
@@ -383,6 +405,7 @@ export const LEVEL_THEMES = {
   24: { accent: '#ffffff', glow: '#6a2aaa', icon: 'Ω' },
   25: { accent: '#4a90ff', glow: '#1a2238', icon: '💼' },
   26: { accent: '#ffc81a', glow: '#3a3a44', icon: '✏️' },
+  27: { accent: '#ff1a3a', glow: '#2a0006', icon: '💀' },
 };
 
 export const LAST_LEVEL = LEVELS.length;

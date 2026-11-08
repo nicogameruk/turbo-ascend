@@ -444,6 +444,7 @@ function startRun() {
   hazards.hide();
   portal.close();
   boss.stop();
+  if (level.oneHeart) stats.maxHealth = 1; // the Impossible level
   health = stats.maxHealth;
   invuln = 0;
   meters = 0;
@@ -585,7 +586,7 @@ const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
   nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap', rainmaster: 'whoosh', webslinger: 'thwip',
   tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
-  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready', scribble: 'whoosh',
+  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', chaos: 'blast', dreamheal: 'buy', omega: 'blast', coffee: 'ready', scribble: 'whoosh',
 };
 
 function useAbility() {
@@ -677,6 +678,15 @@ function castAbility(id) {
     if (state === 'boss') boss.hurt(2);
     hud.flash(0.6);
     hud.banner(`⚡ THUNDERSTRIKE! ${targets.length + (state === 'boss' ? 1 : 0)} zapped`, 1.2);
+  }
+  if (id === 'chaos') {
+    const pool = Object.keys(ABILITIES).filter((a) => ABILITIES[a].active && a !== 'chaos' && a !== 'repair' && a !== 'dreamheal');
+    const picks = [];
+    while (picks.length < 3) { const a = pool[Math.floor(Math.random() * pool.length)]; if (!picks.includes(a)) picks.push(a); }
+    picks.forEach((a) => petCast(a));
+    booms.spawn(pos, 0xff1a3a, 4);
+    hud.flash(0.5);
+    hud.banner(`💀 CHAOS STORM: ${picks.map((a) => ABILITIES[a].name).join(' + ')}!`, 2);
   }
   if (id === 'webslinger') {
     const targets = enemies.targets(pos, 5);

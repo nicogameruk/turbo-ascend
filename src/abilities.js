@@ -27,6 +27,7 @@ export const ABILITIES = {
   dreamheal: { name: 'Sweet Dreams', desc: 'Heal 2 hearts', level: 23, active: true, cooldown: 30 },
   omega: { name: 'Omega Beam', desc: 'A giant beam melts everything ahead, boss included, for 2 s', level: 24, active: true, cooldown: 20, duration: 2 },
   scribble: { name: 'Scribble Out', desc: 'Scribble over the 3 nearest enemies (and the boss once)', level: 26, active: true, cooldown: 12 },
+  chaos: { name: 'Chaos Storm', desc: 'Fire 3 random abilities from the whole game at once', level: 27, active: true, cooldown: 20 },
   coffee: { name: 'Coffee Break', desc: 'Heal 1 heart, refill your fuel and slow everything down for 4 s', level: 25, active: true, cooldown: 20, duration: 4 },
 
   // Bought in the shop with coins.
