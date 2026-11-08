@@ -61,6 +61,7 @@ export function createProgress() {
     ability: null, // the equipped active ability (used with B)
     settings: { ...DEFAULT_SETTINGS },
     started: false, // true once a game has been started (shows "Continue")
+    name: '', // your racer name, picked when you start a new game
   };
 }
 
@@ -93,6 +94,7 @@ export function restoreProgress(progress, saved) {
     controls: s.controls === 'touch' || s.controls === 'keyboard' ? s.controls : DEFAULT_SETTINGS.controls,
   };
   progress.started = !!saved.started;
+  progress.name = typeof saved.name === 'string' ? saved.name.slice(0, 30) : '';
   return progress;
 }
 

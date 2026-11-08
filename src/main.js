@@ -199,10 +199,14 @@ const garage = createGarage(progress, {
 });
 
 const menus = createMenus({
-  onContinue: () => { menus.hide(); openGarage(); },
-  onNewGame: () => {
+  onContinue: (name) => {
+    if (name) { progress.name = name; save(); }
+    menus.hide();
+    openGarage();
+  },
+  onNewGame: (name) => {
     const settings = progress.settings;
-    Object.assign(progress, createProgress(), { settings, started: true });
+    Object.assign(progress, createProgress(), { settings, started: true, name });
     save();
     menus.hide();
     car.applyUpgrades(progress.levels);
@@ -311,7 +315,7 @@ function showTitle() {
   speed = MENU_SPEED;
   audio.setEngine(false);
   audio.music(getLevel(progress.best));
-  menus.showTitle(progress.started);
+  menus.showTitle(progress.started, progress.name);
   save();
 }
 
@@ -957,6 +961,7 @@ function frame() {
     timeText: formatTime(runTime),
     coinsEarned,
     ending,
+    playerName: progress.name,
     warning: enemies.warning,
     bossName: boss.name,
     bossHp: boss.hp,

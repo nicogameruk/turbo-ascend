@@ -149,6 +149,12 @@
       .menu label { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 15px; }
       .menu input[type=range] { flex: 1; }
       .menu input[type=checkbox] { width: 20px; height: 20px; }
+      .name-row { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; box-sizing: border-box; border-radius: 12px; background: rgba(255,255,255,.08); border: 2px solid rgba(255,207,138,.5); }
+      #name-value { flex: 1; font-size: 24px; font-weight: 900; color: #ffcf8a; text-align: left; }
+      .menu button.reroll { width: 52px; height: 52px; padding: 0; font-size: 26px; border-radius: 50%; flex: none; transition: transform .3s; }
+      .menu button.reroll.spin { transform: rotate(360deg); }
+      #player-name { font-size: 15px; font-weight: 800; color: #fff; }
+      #garage-name { margin-top: -6px; font-size: 15px; color: #ffcf8a; font-weight: 700; }
       .menu select { font: inherit; padding: 4px 8px; border-radius: 6px; }
       .keys { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
       .keys td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
@@ -175,6 +181,7 @@
         <div id="mud"><span class="label" id="mat-label">MUD</span><b id="mud-count">0 / 20</b></div>
       </div>
       <div class="panel" id="right">
+        <div id="player-name"></div>
         <div id="level-name">LEVEL 1 · DIRT</div>
         <div class="label">DISTANCE</div>
         <div id="distance">0 m</div>
@@ -198,6 +205,7 @@
       <div id="actions"></div>
       <div id="garage">
         <h1>GARAGE</h1>
+        <div id="garage-name"></div>
         <div class="bank">
           <span>Materials: <b id="garage-mud">0</b></span>
           <span class="coins">Coins: <b id="garage-coins">0</b></span>
@@ -246,6 +254,16 @@
         <button data-action="newgame">New Game</button>
         <button data-action="controls">Controls</button>
         <button data-action="settings">Settings</button>
+      </div>
+      <div class="menu" id="menu-name">
+        <h2>YOUR RACER NAME</h2>
+        <p>This is you! Don't like it? Roll a new one. Once you start, it's yours until you start a new game.</p>
+        <div class="name-row">
+          <span id="name-value"></span>
+          <button class="reroll" data-action="reroll" title="Roll a new name (R)">🔄</button>
+        </div>
+        <button class="primary" data-action="namestart">Let's go!</button>
+        <button data-action="nameback">Back</button>
       </div>
       <div class="menu" id="menu-pause">
         <h2>PAUSED</h2>

@@ -10,6 +10,7 @@ export function createHud() {
   const matLabel = $('mat-label');
   const mudCount = $('mud-count');
   const levelName = $('level-name');
+  const playerName = $('player-name');
   const distance = $('distance');
   const timer = $('timer');
   const flashEl = $('flash');
@@ -131,6 +132,7 @@ export function createHud() {
       setText(mudCount, `${s.runMud} / ${s.goal}`);
       mudCount.classList.toggle('full', s.runMud >= s.goal);
       setText(levelName, `LEVEL ${s.level.n} · ${s.level.name.toUpperCase()}`);
+      setText(playerName, s.playerName ? `👤 ${s.playerName}` : '');
       setText(distance, `${Math.floor(s.meters)} m`);
 
       boss.style.display = s.state === 'boss' ? 'block' : 'none';
@@ -154,6 +156,7 @@ export function createHud() {
       let html = '';
       if (s.state === 'ending' && s.ending) {
         html = `<span class="ending">YOU ARE THE OMEGA LEGEND</span>
+          ${s.playerName ? `<b style="font-size:28px;color:#ffcf8a">${s.playerName.replace(/[<>&]/g, '')}</b>` : ''}
           <small>The Omega is gone. From a dented dirt car all the way past the edge of the universe — you did it.<br>
           ${s.ending.pay} · ${s.ending.time}<br>
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>

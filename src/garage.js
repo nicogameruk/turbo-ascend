@@ -162,6 +162,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
 
   function render() {
     $('garage-mud').textContent = progress.bank;
+    $('garage-name').textContent = progress.name ? `👤 ${progress.name}` : '';
     $('garage-coins').textContent = progress.coins;
     panel.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     panel.querySelectorAll('.tab-body').forEach((el) => { el.style.display = el.dataset.tab === tab ? 'flex' : 'none'; });
