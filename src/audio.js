@@ -132,6 +132,11 @@ export function createAudio() {
     truck: () => { tone(110, { type: 'sawtooth', dur: 0.7, vol: 0.3 }); tone(138, { type: 'sawtooth', dur: 0.7, vol: 0.25 }); },
     laser: () => { tone(1800, { type: 'sawtooth', dur: 0.35, vol: 0.15, slide: 0.1 }); tone(1500, { type: 'sawtooth', at: 0.2, dur: 0.35, vol: 0.15, slide: 0.1 }); },
     duck: () => { tone(700, { type: 'square', dur: 0.12, vol: 0.15, slide: 0.6 }); tone(650, { type: 'square', at: 0.15, dur: 0.14, vol: 0.15, slide: 0.6 }); },
+    bell: () => { tone(2200, { dur: 0.6, vol: 0.15 }); tone(2640, { dur: 0.5, vol: 0.1 }); tone(2200, { at: 0.18, dur: 0.6, vol: 0.15 }); },
+    clown: () => { tone(300, { type: 'square', dur: 0.18, vol: 0.15, slide: 2.2 }); tone(380, { type: 'square', at: 0.22, dur: 0.18, vol: 0.15, slide: 2.2 }); },
+    train: () => { [0, 0.45].forEach((at) => { tone(220, { type: 'sawtooth', at, dur: 0.4, vol: 0.18 }); tone(277, { type: 'sawtooth', at, dur: 0.4, vol: 0.15 }); tone(330, { type: 'sawtooth', at, dur: 0.4, vol: 0.12 }); }); },
+    alarm: () => { for (let i = 0; i < 4; i++) tone(i % 2 ? 660 : 880, { type: 'square', at: i * 0.12, dur: 0.11, vol: 0.12 }); },
+    chiptune: () => { [0, 4, 7, 11, 12, 7, 12, 16].forEach((st, i) => tone(mtof(72 + st), { type: 'square', at: i * 0.06, dur: 0.07, vol: 0.1 })); },
     fanfare: () => { [0, 4, 7, 12].forEach((s, i) => tone(mtof(67 + s), { type: 'square', at: i * 0.1, dur: i === 3 ? 0.4 : 0.12, vol: 0.14 })); },
   };
 

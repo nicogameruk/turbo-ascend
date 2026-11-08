@@ -398,6 +398,12 @@ export function createBoss(scene) {
     },
 
     clearShots() { shots.forEach((s) => { if (s.kind === 'red') kill(s); }); },
+    // Mini UFO pet: zap the boss's red shots near the car. Returns how many.
+    clearNear(pos, range) {
+      let n = 0;
+      for (const s of shots) if (s.alive && s.kind === 'red' && s.mesh.position.distanceTo(pos) < range) { kill(s); n++; }
+      return n;
+    },
 
     start() {
       hp = maxHp;

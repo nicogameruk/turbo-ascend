@@ -55,6 +55,12 @@ export function createShots(scene) {
     },
 
     clear() { shots.forEach(kill); },
+    // Mini UFO pet: zap shots close to the car. Returns how many.
+    clearNear(pos, range) {
+      let n = 0;
+      for (const s of shots) if (s.alive && s.mesh.position.distanceTo(pos) < range) { kill(s); n++; }
+      return n;
+    },
     // Fire Breath: burn shots in front of the car.
     clearAhead(carPos, range = 80) {
       for (const s of shots) {

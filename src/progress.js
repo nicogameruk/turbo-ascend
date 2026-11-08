@@ -22,8 +22,9 @@ export function createProgress() {
     best: 1, // highest level unlocked
     level: 1, // level to fly next
     levels: { tank: 0, armor: 0, thrusters: 0, booster: 0 },
-    owned: { paint: ['level'], trail: ['blue'], horn: ['beep'] },
-    equipped: { paint: 'level', trail: 'blue', horn: 'beep' },
+    // Shop items: the first item of every kind is free.
+    owned: Object.fromEntries(Object.entries(SHOP).map(([k, items]) => [k, [items[0].id]])),
+    equipped: Object.fromEntries(Object.entries(SHOP).map(([k, items]) => [k, items[0].id])),
     records: {}, // level number -> best clear time in seconds
     ownedAbilities: [], // abilities bought in the shop
     ability: null, // the equipped active ability (used with B)

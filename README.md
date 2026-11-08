@@ -19,6 +19,8 @@ Built with [three.js](https://threejs.org) and [Vite](https://vite.dev). All mod
 
 You pick which ability to take into each round in the garage: **Shop → Ability**. Level rewards are free there, and extra abilities (Nitro, Repair Kit, Double Up, Homing Missiles) can be bought with coins.
 
+The shop also sells looks with coins: 18 paints (including chrome and glowing ones), 10 trails, 8 underglow colours, 10 hats, 10 horns, and **10 pets** that fly next to you. Each pet helps in its own way, for example Robo Puppy fetches material, Ghost blocks your first hit each level, Baby Dragon spits fireballs and Phoenix brings you back once a level.
+
 **Phones and tablets:** turn on **Settings → Controls → Touch screen**. Drag on the left side of the screen to steer, and use the BOOST, ABILITY, horn and pause buttons on the right.
 
 ## Run it on your computer

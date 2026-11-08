@@ -20,7 +20,10 @@ import { findItem } from './cosmetics.js';
 import { getLevel, bossBonus, runCoins, LAST_LEVEL } from './levels.js';
 import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from './abilities.js';
 import { createTouchControls } from './touch.js';
+import { createToppers } from './toppers.js';
+import { createPet } from './pets.js';
 import { BOUNDS } from './car.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const BASE_SPEED = 40;
 const MENU_SPEED = 22;
@@ -59,6 +62,8 @@ const audio = createAudio();
 const world = createWorld(scene, hemi);
 const car = createCar();
 scene.add(car.group);
+// A soft studio "room" for chrome paint to reflect.
+car.setEnvironment(new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture);
 
 // Fire Breath: a cone of flame in front of the car.
 const breathMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
@@ -74,7 +79,7 @@ car.group.add(breath);
 const missileGeo = new THREE.SphereGeometry(0.25, 10, 8);
 const missileMat = new THREE.MeshBasicMaterial({ color: 0xffd060 });
 const missiles = []; // { mesh, target, alive }
-function fireMissile(target, delay) {
+function fireMissile(target, delay, from = null) {
   let m = missiles.find((x) => !x.alive);
   if (!m) {
     m = { mesh: new THREE.Mesh(missileGeo, missileMat) };
@@ -87,7 +92,8 @@ function fireMissile(target, delay) {
   m.delay = delay;
   m.life = 3;
   m.mesh.visible = false;
-  m.mesh.position.copy(car.group.position).add(new THREE.Vector3((Math.random() - 0.5) * 2, 0.8, -1));
+  if (from) m.mesh.position.copy(from);
+  else m.mesh.position.copy(car.group.position).add(new THREE.Vector3((Math.random() - 0.5) * 2, 0.8, -1));
 }
 function updateMissiles(dt) {
   for (const m of missiles) {
@@ -110,6 +116,12 @@ function updateMissiles(dt) {
   }
 }
 const clearMissiles = () => missiles.forEach((m) => { m.alive = false; m.mesh.visible = false; });
+
+const toppers = createToppers(car.topperSlot);
+const pet = createPet(scene);
+const petIs = (id) => progress.equipped.pet === id;
+let petTimer = 0; // for pets that do something every few seconds
+let petUsed = false; // for once-a-level pet perks
 
 const trails = createTrails(scene);
 const sparks = createSparks(scene);
@@ -138,9 +150,14 @@ shots.spawn = (...args) => {
 
 const save = () => writeSave(progress);
 
-// Shop looks: paint, trail and flame colour.
+// Shop looks: paint, trail, flame colour, glow, hat and pet.
 function applyLooks() {
-  car.setPaint(findItem('paint', progress.equipped.paint).color ?? null);
+  car.setPaint(findItem('paint', progress.equipped.paint));
+  const glowItem = findItem('glow', progress.equipped.glow);
+  car.setGlow(glowItem.id === 'upgrade' ? undefined : glowItem.color);
+  toppers.set(progress.equipped.topper);
+  pet.set(progress.equipped.pet);
+  pet.snap(car.group.position);
   const trail = findItem('trail', progress.equipped.trail);
   trails.setColor(trail.color);
   car.setTrailColor(trail.id === 'blue' ? 0xff8a2a : trail.color);
@@ -265,6 +282,9 @@ function startRun() {
   coinsEarned = 0;
   hud.setActions([]);
   clearMissiles();
+  petTimer = 0;
+  petUsed = false;
+  pet.snap(car.group.position);
   resetAbilityTimers();
   for (const id in cooldown) cooldown[id] = 0;
   car.setDash(false);
@@ -287,8 +307,31 @@ function damage() {
     return true;
   }
   if (devGodMode || invuln > 0) return false;
+  if (petIs('ghost') && !petUsed) {
+    petUsed = true;
+    invuln = 1;
+    booms.spawn(car.group.position, 0xccddff, 0.8);
+    audio.play('block');
+    hud.banner('👻 Your ghost blocked that hit!', 1.5);
+    return true;
+  }
   health -= 1;
   invuln = INVULN_TIME;
+  if (health <= 0 && petIs('phoenix') && !petUsed) {
+    petUsed = true;
+    health = 1;
+    invuln = 2.5;
+    booms.spawn(car.group.position, 0xff8a2a, 3);
+    hud.flash(0.5);
+    audio.play('portal');
+    hud.banner('🔥 PHOENIX REVIVE! Back with 1 heart', 2);
+  }
+  if (health === 1 && petIs('slime') && !petUsed && stats.maxHealth > 1) {
+    petUsed = true;
+    health = 2;
+    sparks.burst(car.group.position, 20, 0x8dff9a);
+    hud.banner('🟢 Your slime healed you!', 1.5);
+  }
   sparks.burst(car.group.position);
   hud.hurt();
   audio.play('hit');
@@ -302,7 +345,7 @@ function gameOver() {
   car.setShield(false, 0);
   booms.spawn(car.group.position, 0xff6a2a, 1.4);
   hud.banner('', 0);
-  coinsEarned = runCoins(level, meters, false);
+  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : 1));
   progress.coins += coinsEarned;
   audio.setEngine(false);
   audio.play('boom');
@@ -351,7 +394,7 @@ function useAbility() {
   if (!id) { hud.banner('No ability equipped — pick one in the garage shop', 2); return; }
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
   if (id === 'repair' && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
-  cooldown[id] = abilityCooldown(id, progress.best);
+  cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1);
   const dur = abilityDuration(id, progress.best);
   const pos = car.group.position;
   audio.play(ABILITY_SOUNDS[id] ?? id);
@@ -419,9 +462,9 @@ function win() {
   hazards.hide();
   enemies.hide();
   clearMissiles();
-  const earned = runMat + bossBonus(level);
+  const earned = Math.round((runMat + bossBonus(level)) * (petIs('owl') ? 1.15 : 1));
   progress.bank += earned;
-  coinsEarned = runCoins(level, meters, true);
+  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1));
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
   if (firstClear) {
@@ -529,6 +572,7 @@ function update(dt, time) {
   nitroT = Math.max(0, nitroT - dt);
   doubleT = Math.max(0, doubleT - dt);
   updateMissiles(dt);
+  if (state === 'flying' || state === 'boss') updatePetPerks(dt);
   if (dashT > 0) {
     dashT -= dt;
     if (dashT <= 0) car.setDash(false);
@@ -565,7 +609,7 @@ function update(dt, time) {
   elapsed += dt;
   if (state !== 'victory') runTime += dt;
 
-  const got = materials.update(dt, speed, car.group.position, state === 'flying', time, stats.magnet);
+  const got = materials.update(dt, speed, car.group.position, state === 'flying', time, petIs('puppy') ? Math.max(stats.magnet, 5) : stats.magnet);
   if (got) {
     runMat += got * (doubleT > 0 ? 2 : 1);
     hud.pulseMud();
@@ -605,6 +649,28 @@ function update(dt, time) {
     if (ev.defeated) win();
   } else {
     shots.update(dt, car.group.position, () => false);
+  }
+}
+
+// Pets that do something every few seconds.
+function updatePetPerks(dt) {
+  petTimer += dt;
+  // Once charged (6 s), the UFO zaps the next shots that come close.
+  if (petIs('ufo') && petTimer > 6) {
+    const n = shots.clearNear(car.group.position, 10) + (state === 'boss' ? boss.clearNear(car.group.position, 10) : 0);
+    if (n) { petTimer = 0; booms.spawn(pet.mouth, 0x8dff9a, 0.8); audio.play('zap'); pet.flash(); }
+  }
+  if (petIs('dragon') && petTimer > 7) {
+    const [t] = enemies.targets(car.group.position, 1);
+    const target = t ?? (state === 'boss' && boss.hp > 0
+      ? { pos: boss.group.position, size: boss.group.scale.x * 1.5, get alive() { return boss.hp > 0; }, destroy: () => boss.hurt(1) }
+      : null);
+    if (target) {
+      petTimer = 0;
+      fireMissile(target, 0, pet.mouth.clone());
+      audio.play('whoosh');
+      pet.flash();
+    }
   }
 }
 
@@ -651,8 +717,10 @@ function frame() {
   else if (state === 'over') { booms.update(dt); sparks.update(dt); }
   else if (state === 'ending') updateMenu(dt, time);
 
+  pet.update(dt, car.group.position, time);
+  toppers.update(dt);
   const abilityId = equipped();
-  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) };
+  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) };
   touch.setVisible(state === 'flying' || state === 'boss');
   touch.setAbility(abilityInfo);
   hud.update(dt, {

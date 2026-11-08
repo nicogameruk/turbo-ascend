@@ -286,6 +286,10 @@ export function createCar() {
   let flamePower = 1;
   let tier = 1;
   let paintOverride = null; // shop paint colour, or null for the level look
+  let paintItem = null; // the shop paint (for chrome and glowing paints)
+  let glowOverride = undefined; // shop glow colour; null = rainbow; undefined = follows the upgrade
+  let thrusterLevel = 0;
+  let envMap = null; // reflections for chrome paints
   let rainbowFlame = false;
 
   const showParts = (n) => {
@@ -310,6 +314,7 @@ export function createCar() {
       }
     }
     if (tier === 13 && paintOverride === null) paint.color.setHSL((time * 0.15) % 1, 0.85, 0.6);
+    if (glowOverride === null) glow.color.setHSL((time * 0.3) % 1, 1, 0.6);
     for (const gp of glowParts) {
       if (gp.kind === 'twinkle') gp.mesh.scale.setScalar(0.5 + Math.abs(Math.sin(time * 3 + gp.phase)));
       if (gp.kind === 'spin') gp.mesh.rotation.z = time * 1.5;
@@ -358,7 +363,8 @@ export function createCar() {
       const discScale = 1 + 0.25 * levels.thrusters;
       glowDiscs.forEach((d) => d.scale.set(discScale, 1, discScale));
       thrusterRings.forEach((r) => { r.visible = levels.thrusters >= 2; });
-      glow.color.setHex(GLOW_COLORS[Math.min(levels.thrusters, GLOW_COLORS.length - 1)]);
+      thrusterLevel = levels.thrusters;
+      if (glowOverride === undefined) glow.color.setHex(GLOW_COLORS[Math.min(levels.thrusters, GLOW_COLORS.length - 1)]);
       nozzles.slice(0, 2).forEach((n) => n.scale.setScalar(levels.booster >= 3 ? 1.4 : levels.booster >= 1 ? 1.25 : 1));
       topBooster.visible = levels.booster >= 2;
       flamePower = 1 + 0.25 * levels.booster;
@@ -421,16 +427,44 @@ export function createCar() {
       paint.opacity = t.opacity ?? 1;
       paint.emissive.setHex(t.emissive ?? 0x000000);
       paint.emissiveIntensity = t.emissive ? t.glow ?? 0.5 : 0;
+      if (paintItem?.metal) { paint.metalness = 1; paint.roughness = 0.12; paint.flatShading = false; }
+      paint.envMap = paintItem?.metal ? envMap : null;
+      paint.envMapIntensity = 1.2;
+      if (paintItem?.glow) { paint.emissive.setHex(paintItem.glow); paint.emissiveIntensity = 0.8; }
+      if (paintItem) { paint.transparent = false; paint.opacity = 1; }
       paint.needsUpdate = true;
       mudSplats.forEach((m) => { m.visible = tier === 1; });
       showParts(tier);
     },
 
     // Shop paint: a colour, or null to use the level look.
-    setPaint(hex) {
-      paintOverride = hex ?? null;
+    // item: the shop paint ({ color, metal, glow }), or null for the level look.
+    setPaint(item) {
+      paintItem = item?.color === undefined ? null : item;
+      paintOverride = paintItem ? paintItem.color : null;
       car.setTier(tier);
     },
+
+    // Something for chrome paints to reflect.
+    setEnvironment(tex) {
+      envMap = tex;
+      car.setTier(tier);
+    },
+
+    // Shop underglow: a colour, null for rainbow, or undefined to follow the thruster upgrade.
+    setGlow(hex) {
+      glowOverride = hex;
+      if (hex === undefined) glow.color.setHex(GLOW_COLORS[Math.min(thrusterLevel, GLOW_COLORS.length - 1)]);
+      else if (hex !== null) glow.color.setHex(hex);
+    },
+
+    // Where a hat sits: on the roof, tilting with the car.
+    topperSlot: (() => {
+      const slot = new THREE.Group();
+      slot.position.set(0, 0.67, 0.3);
+      body.add(slot);
+      return slot;
+    })(),
 
     // Shop trail colour also tints the booster flames (null = rainbow).
     setTrailColor(hex) {

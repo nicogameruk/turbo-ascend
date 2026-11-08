@@ -125,12 +125,13 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
     for (const item of SHOP[shopKind]) {
       const owned = progress.owned[shopKind].includes(item.id);
       const equipped = progress.equipped[shopKind] === item.id;
-      const swatch = shopKind === 'horn' ? '🔊'
+      const swatch = item.icon ?? (shopKind === 'horn' ? '🔊'
         : item.color === null ? '<span class="swatch rainbow"></span>'
           : item.color === undefined ? '<span class="swatch level"></span>'
-            : `<span class="swatch" style="background:${hex(item.color)}"></span>`;
+            : `<span class="swatch${item.metal ? ' metal' : ''}" style="background:${hex(item.color)}"></span>`);
       const right = equipped ? 'ON' : owned ? 'Use' : `${item.cost} ¢`;
-      const b = button('upgrade shop', `<span class="key">${swatch}</span><span class="info"><b>${item.name}</b></span><span class="cost">${right}</span>`,
+      const desc = item.desc ? `<small>${item.desc}</small>` : '';
+      const b = button('upgrade shop', `<span class="key">${swatch}</span><span class="info"><b>${item.name}</b>${desc}</span><span class="cost">${right}</span>`,
         () => shopItem(shopKind, item), !owned && progress.coins < item.cost);
       b.classList.toggle('on', equipped);
       list.append(b);
