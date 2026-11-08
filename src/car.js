@@ -101,6 +101,22 @@ export function createCar() {
     // Red tail lights
     box(0.55, 0.08, 0.05, tailLight, -0.65, 0.22, 2.34),
     box(0.55, 0.08, 0.05, tailLight, 0.65, 0.22, 2.34),
+    // The sides: wheel arches, skirts, air intakes, door lines and a chrome strip.
+    ...[-1, 1].flatMap((sd) => [
+      ...[-1.45, 1.45].map((z) => {
+        // A rounded arch bulging out over each wheel
+        const arch = add(new THREE.SphereGeometry(1, 24, 14), paint, sd * 1.06, 0.1, z);
+        arch.scale.set(0.24, 0.26, 0.72);
+        return arch;
+      }),
+      box(0.12, 0.13, 1.7, dark, sd * 1.12, -0.17, 0), // side skirt between the wheels
+      box(0.07, 0.16, 0.55, dark, sd * 1.13, 0.08, 0.6), // air intake behind the door
+      box(0.05, 0.05, 0.4, chrome, sd * 1.15, 0.17, 0.6), // intake trim
+      box(0.03, 0.34, 0.03, dark, sd * 1.135, 0.07, -0.55), // front door line
+      box(0.03, 0.34, 0.03, dark, sd * 1.135, 0.07, 0.25), // back door line
+      box(0.03, 0.03, 0.95, chrome, sd * 1.14, 0.23, -0.15), // chrome strip along the door
+      box(0.04, 0.03, 0.12, chrome, sd * 1.14, 0.12, -0.08), // door handle
+    ]),
   ];
   const mudSplats = [
     box(0.7, 0.04, 0.9, mud, -0.5, 0.24, -1.3),
