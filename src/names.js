@@ -15,7 +15,9 @@ const NOUNS = [
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 // The owner's names: never given out at random (the leaderboard also guards them).
-export const RESERVED_NAMES = ['Frosty Hamster 55'];
+export const RESERVED_NAMES = ['Frosty Hamster 55', 'Mighty Tiger 44'];
+// Only these racers may change their name (Settings → 🔑 Owner). The database checks too.
+export const RENAME_NAMES = ['Frosty Hamster 55', 'Mighty Tiger 44'];
 const reserved = (name) => RESERVED_NAMES.some((r) => r.toLowerCase() === name.toLowerCase());
 
 export function randomName() {

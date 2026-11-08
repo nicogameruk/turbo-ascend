@@ -3,7 +3,7 @@ import { randomName } from './names.js';
 
 const $ = (id) => document.getElementById(id);
 
-export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, onLeaders, onCheckOwner, onOwnerCode, onRename, getOwnerCode, ownerNameRule, sound }) {
+export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, onLeaders, onCheckOwner, onOwnerCode, onRename, onOpenSettings, getOwnerCode, ownerNameRule, sound }) {
   const panels = { title: $('menu-title'), name: $('menu-name'), leaders: $('menu-leaders'), pause: $('menu-pause'), settings: $('menu-settings'), controls: $('menu-controls') };
   const root = $('menus');
   let current = null;
@@ -57,7 +57,11 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
       msg.style.color = '';
       msg.textContent = 'Checking…';
       if (!(await onCheckOwner(code))) { msg.style.color = '#ffb0b0'; msg.textContent = 'That code isn\'t right.'; return; }
-      await onRename(name, code);
+      if (!(await onRename(name, code))) {
+        msg.style.color = '#ffb0b0';
+        msg.textContent = 'This racer can\'t change name.';
+        return;
+      }
       codeInput.value = '';
       nameInput.value = '';
       msg.style.color = '#8dff9a';
@@ -92,7 +96,7 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
     resume: () => onResume(),
     restart: () => onRestart(),
     quit: () => onQuit(),
-    settings: () => { back = current; show('settings'); },
+    settings: () => { back = current; onOpenSettings?.(); show('settings'); },
     controls: () => { back = current; show('controls'); },
     leaders: () => { back = current; show('leaders'); onLeaders?.(); },
     back: () => show(back ?? 'title'),
@@ -132,6 +136,8 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
     },
     showPause() { show('pause'); },
     hide() { show(null); },
+    // Only racers allowed to rename see the New name box.
+    setRenameAllowed(on) { $('rename-box').hidden = !on; },
     setSettings(s) {
       volume.value = Math.round(s.volume * 100);
       music.checked = s.music;

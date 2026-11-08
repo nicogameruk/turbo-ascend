@@ -21,9 +21,10 @@ Only the owner can type their own name, and names like "Frosty Hamster 55" are r
 
 1. Open `docs/leaderboard-owner.sql`, replace `CHANGE-ME-TO-YOUR-SECRET-CODE` with your own secret code (at least 8 characters — a few random words is best).
 2. Paste it into Supabase → **SQL Editor** → **New query** and click **Run**. Don't save the file with your real code in it.
-3. In the game:
+3. Then run `docs/leaderboard-rename.sql` the same way (it doesn't touch your code). It lets only **Frosty Hamster 55** and **Mighty Tiger 44** change their names.
+4. In the game:
    - **New name:** New Game → tap the small 🔑 on the name screen → enter your code and the name you want.
    - **Keep your current name** (e.g. Frosty Hamster 55): Settings → 🔑 Owner → enter your code → Save.
-   - **Change your name any time** (keeps all progress and scores): Settings → 🔑 Owner → New name → Change my name.
+   - **Change your name** (only Frosty Hamster 55 and Mighty Tiger 44; keeps all progress and scores): Settings → 🔑 Owner → New name → Change my name. That racer can rename again later.
 
 To reserve more names for yourself, run: `insert into public.reserved_names (name) values ('Another Name 12');`

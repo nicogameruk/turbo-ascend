@@ -3,7 +3,7 @@
 -- Run once in Supabase → SQL Editor → New query → Run.
 --
 -- 1. Replace CHANGE-ME-TO-YOUR-SECRET-CODE below with your own secret code
---    (long and hard to guess, e.g. 4+ random words). Keep it private.
+Nicolas124!--    (long and hard to guess, e.g. 4+ random words). Keep it private.
 -- 2. Run the whole script.
 -- Only a scrambled fingerprint (hash) of the code is stored, not the code itself.
 -- To change the code later, edit it below and run the script again.
@@ -21,7 +21,7 @@ on conflict (id) do update set code_hash = excluded.code_hash;
 -- Names only the owner may use (even though they look like random game names).
 create table if not exists public.reserved_names (name text primary key);
 alter table public.reserved_names enable row level security;
-insert into public.reserved_names (name) values ('Frosty Hamster 55') on conflict do nothing;
+insert into public.reserved_names (name) values ('Frosty Hamster 55'), ('Mighty Tiger 44') on conflict do nothing;
 
 -- Is this the owner's code?
 create or replace function public.check_owner(p_code text)
@@ -52,15 +52,6 @@ begin
     set points = scores.points + excluded.points, name = excluded.name, updated_at = now();
 end $$;
 
--- Owner only: change your name, keeping your scores.
-create or replace function public.rename_player(p_player uuid, p_name text, p_code text)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  if not check_owner(p_code) then raise exception 'not the owner'; end if;
-  if p_name !~ '^[A-Za-z0-9 _.!-]{1,20}$' then raise exception 'name not allowed'; end if;
-  update scores set name = p_name, updated_at = updated_at where player_id = p_player;
-end $$;
-
 grant execute on function public.check_owner(text) to anon;
-grant execute on function public.rename_player(uuid, text, text) to anon;
+-- Changing names: see docs/leaderboard-rename.sql (run that after this one).
 grant execute on function public.add_score(uuid, text, integer, text) to anon;

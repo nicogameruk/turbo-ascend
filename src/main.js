@@ -23,6 +23,7 @@ import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from 
 import { createTouchControls } from './touch.js';
 import { createToppers } from './toppers.js';
 import { createPet } from './pets.js';
+import { RENAME_NAMES } from './names.js';
 import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView, checkOwnerCode, renamePlayer, OWNER_NAME_RULE } from './leaderboard.js';
 import { BOUNDS } from './car.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -212,6 +213,7 @@ shots.spawn = (...args) => {
 };
 
 const save = () => writeSave(progress);
+const canRename = () => progress.canRename || RENAME_NAMES.some((n) => n.toLowerCase() === progress.name.toLowerCase());
 // Every named racer needs a leaderboard id (old saves get one now).
 if (progress.name && !progress.playerId) { progress.playerId = newPlayerId(); writeSave(progress); }
 const boardMenu = createBoardView(document.getElementById('lb-menu'), () => progress, (n) => audio.play(n));
@@ -285,15 +287,20 @@ const menus = createMenus({
   onCheckOwner: (code) => checkOwnerCode(code),
   onOwnerCode: (code) => { progress.ownerCode = code; save(); sendPoints(progress, save); },
   getOwnerCode: () => progress.ownerCode,
-  // Owner rename: same racer, same progress, new name (also on the leaderboard).
+  // Rename (only Frosty Hamster 55 / Mighty Tiger 44, with the owner code):
+  // same racer, same progress, new name — on the leaderboard too.
   onRename: async (name, code) => {
+    if (!canRename()) return false;
+    if (!progress.playerId) progress.playerId = newPlayerId();
+    if (!(await renamePlayer(progress.playerId, progress.name, name, code))) return false;
     progress.name = name;
     progress.ownerCode = code;
-    if (!progress.playerId) progress.playerId = newPlayerId();
+    progress.canRename = true; // this racer can rename again later
     save();
-    await renamePlayer(progress);
     sendPoints(progress, save);
+    return true;
   },
+  onOpenSettings: () => menus.setRenameAllowed(canRename()),
   ownerNameRule: OWNER_NAME_RULE,
   sound: (n) => audio.play(n),
 });

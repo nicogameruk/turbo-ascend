@@ -63,11 +63,12 @@ export async function checkOwnerCode(code) {
   try { return (await rpc('check_owner', { p_code: code })) === true; } catch { return false; }
 }
 
-// Owner only: change the name on your existing scores.
-export async function renamePlayer(progress) {
-  if (!leaderboardOn() || !progress.playerId || !progress.ownerCode) return false;
+// Change the name on your existing scores (only allowed racers, with the owner code).
+// Returns true if the database agreed.
+export async function renamePlayer(playerId, oldName, newName, code) {
+  if (!leaderboardOn() || !playerId) return false;
   try {
-    await rpc('rename_player', { p_player: progress.playerId, p_name: progress.name, p_code: progress.ownerCode });
+    await rpc('rename_player', { p_player: playerId, p_old_name: oldName, p_name: newName, p_code: code });
     return true;
   } catch {
     return false;
