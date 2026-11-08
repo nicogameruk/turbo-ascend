@@ -215,8 +215,7 @@ const toppers = createToppers(car.topperSlot);
 const pet = createPet(scene);
 // The pet you have out (none on levels where pets stay home).
 function petOn() { return level.noPets ? 'none' : progress.equipped.pet; }
-const petIs = (id) => petOn() === id || (petOn() === 'omni' && id !== 'ufo' && id !== 'dragon');
-let omniTimer = 0; // Omni Spirit: casts a random ability every few seconds
+const petIs = (id) => petOn() === id;
 let petTimer = 0; // for pets that do something every few seconds
 let petUsed = false; // for once-a-level pet perks
 
@@ -330,13 +329,7 @@ let level = getLevel(progress.level);
 // Car stats: upgrades, then the body shape's bonus, then the pet's.
 const makeStats = () => {
   const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
-  if (petOn() === 'toucan' || petOn() === 'omni') s.refill *= 1.25;
-  if (petOn() === 'omni') {
-    // Every passive power, even before you unlock them
-    s.maxHealth += 1;
-    s.magnet = Math.max(s.magnet, 9);
-    s.fuelDrain *= 0.77;
-  }
+  if (petOn() === 'toucan') s.refill *= 1.25;
   return s;
 };
 let stats = makeStats();
@@ -464,7 +457,6 @@ function startRun() {
   clearMissiles();
   petTimer = 0;
   petUsed = false;
-  omniTimer = 0;
   pet.snap(car.group.position);
   resetAbilityTimers();
   for (const id in cooldown) cooldown[id] = 0;
@@ -784,7 +776,6 @@ function win() {
   const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
   coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
-  if (level.n === LAST_LEVEL) coinsEarned += 10000; // prize for beating the final level
   addRunPoints(true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
@@ -1022,19 +1013,6 @@ function update(dt, time) {
 // Pets that do something every few seconds.
 function updatePetPerks(dt) {
   petTimer += dt;
-  if (petOn() === 'omni') {
-    omniTimer += dt;
-    if (omniTimer > 4) {
-      omniTimer = 0;
-      const full = health >= stats.maxHealth;
-      const pool = Object.keys(ABILITIES).filter((id) => ABILITIES[id].active && !(full && (id === 'repair' || id === 'dreamheal')));
-      const id = pool[Math.floor(Math.random() * pool.length)];
-      petCast(id);
-      booms.spawn(pet.mouth, 0xb08aff, 0.8);
-      pet.flash();
-      hud.banner(`🌌 Omni Spirit used ${ABILITIES[id].name}!`, 1.4);
-    }
-  }
   // Once charged (6 s), the UFO zaps the next shots that come close.
   if (petIs('ufo') && petTimer > 6) {
     const n = shots.clearNear(car.group.position, 10) + (state === 'boss' ? boss.clearNear(car.group.position, 10) : 0);
