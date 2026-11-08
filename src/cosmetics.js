@@ -102,7 +102,7 @@ export const SHOP = {
     { id: 'star', name: 'Star Sprite', cost: 200, icon: '⭐', desc: 'Your ability recharges 25% faster' },
     { id: 'phoenix', name: 'Phoenix', cost: 260, icon: '🔥', desc: 'Once a level, brings you back with 1 heart' },
     { id: 'toucan', name: 'Toucan', cost: 110, icon: '🦜', desc: 'Brazilian bird buddy: turbo fuel refills 25% faster' },
-    { id: 'omni', name: 'Omni Spirit', cost: 999, icon: '🌌', desc: 'SUPER OVERPOWERED: uses a random ability from the whole game every 4 s, and has the powers of every other pet too' },
+    { id: 'omni', name: 'Omni Spirit', cost: 5000, icon: '🌌', desc: 'SUPER OVERPOWERED: uses a random ability from the whole game every 4 s, and has the powers of every other pet too' },
   ],
 };
 
