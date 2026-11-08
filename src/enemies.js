@@ -1131,6 +1131,21 @@ export function createEnemies(scene, booms) {
       }
     },
 
+    // Rainbow Burst: push nearby enemies away without destroying them.
+    pushAway(carPos, range = 18) {
+      let n = 0;
+      for (const d of chasers()) if (d.group.position.distanceTo(carPos) < range) { d.knockBack(); n++; }
+      for (const slot of allSlots()) {
+        if (!slot.alive) continue;
+        const e = slot.enemy;
+        if (e.group.position.distanceTo(carPos) >= range) continue;
+        if (e.onRam) e.onRam(); // they turn away / fly off
+        else e.group.position.z = Math.min(e.group.position.z, carPos.z - 40); // shoved back ahead of you
+        n++;
+      }
+      return n;
+    },
+
     // Light blast: destroy enemies close enough, knock drones back.
     blast(carPos, range = 70) {
       let n = 0;

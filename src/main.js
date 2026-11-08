@@ -335,7 +335,7 @@ let freezeT = 0; // Hack: enemies and shots frozen
 let slowT = 0; // Slow Time
 let breathT = 0; // Fire Breath
 let breathTick = 0;
-let rainbowT = 0; // Rainbow Shield
+let rainbowT = 0; // Rainbow Burst: just the short colourful glow around the car
 let nitroT = 0; // Nitro (shop)
 let doubleT = 0; // Double Up (shop)
 let iceT = 0; // Ice Wall
@@ -429,7 +429,7 @@ let devGodMode = false; // dev test hook only
 function damage() {
   if (state !== 'flying' && state !== 'boss') return false;
   if (dashT > 0 || warpT > 0 || phantomT > 0) return false; // dashing/warping/ghost: things pass right through you
-  if (shieldT > 0 || rainbowT > 0) {
+  if (shieldT > 0) {
     booms.spawn(car.group.position, 0x7fd8ff, 0.6);
     audio.play('block');
     return true;
@@ -517,7 +517,7 @@ function pullCar(from, strength) {
 function ctx(time = 0) {
   return {
     carPos: car.group.position, speed, elapsed, time, diff: Math.min(level.n - 1, 10), shots, hit: damage,
-    pull: pullCar, smash: rainbowT > 0 || (stats.ram && car.boosting), onKill: () => audio.play('boom'),
+    pull: pullCar, smash: stats.ram && car.boosting, onKill: () => audio.play('boom'),
   };
 }
 const hazardCtx = {
@@ -627,7 +627,15 @@ function useAbility() {
     sparks.burst(pos, 24, 0xffb8f0);
     hud.banner('💭 SWEET DREAMS: +2 hearts', 1.2);
   }
-  if (id === 'rainbow') rainbowT = dur;
+  if (id === 'rainbow') {
+    // A quick ring of rainbow light: clears shots close by and shoves enemies away.
+    rainbowT = dur;
+    const cleared = shots.clearNear(pos, 12) + boss.clearNear(pos, 12);
+    const pushed = enemies.pushAway(pos, 18);
+    [0xff3a3a, 0xffa020, 0xffff40, 0x40ff60, 0x40a0ff, 0xa040ff].forEach((c, k) => booms.spawn(pos, c, 1.2 + k * 0.35));
+    hud.flash(0.25);
+    hud.banner(cleared || pushed ? `🌈 RAINBOW BURST! ${cleared} shots gone, ${pushed} pushed away` : '🌈 RAINBOW BURST!', 1.3);
+  }
   if (id === 'nitro') { nitroT = dur; car.fuel = 1; hud.banner('NITRO!', 1); }
   if (id === 'repair') {
     health += 1;

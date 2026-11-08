@@ -14,7 +14,7 @@ export const ABILITIES = {
   hack: { name: 'Hack', desc: 'Freeze every enemy and shot for 4 s', level: 10, active: true, cooldown: 15, duration: 4 },
   slowtime: { name: 'Slow Time', desc: 'Everything but you slows down for 5 s', level: 11, active: true, cooldown: 15, duration: 5 },
   firebreath: { name: 'Fire Breath', desc: 'Breathe fire ahead, burning enemies and shots', level: 12, active: true, cooldown: 10, duration: 1.6 },
-  rainbow: { name: 'Rainbow Shield', desc: '6 s shield that destroys whatever it touches', level: 13, active: true, cooldown: 16, duration: 6 },
+  rainbow: { name: 'Rainbow Burst', desc: 'A ring of rainbow light wipes out shots close to you and pushes enemies away', level: 13, active: true, cooldown: 12, duration: 0.5 },
   cosmic: { name: 'Cosmic Power', desc: 'Passive: every ability recharges twice as fast and lasts longer', level: 14 },
   tidal: { name: 'Tidal Wave', desc: 'A huge wave wipes out enemies and shots ahead', level: 15, active: true, cooldown: 12, duration: 1 },
   sugarrush: { name: 'Sugar Rush', desc: 'Free super boost and double material for 5 s', level: 16, active: true, cooldown: 18, duration: 5 },
