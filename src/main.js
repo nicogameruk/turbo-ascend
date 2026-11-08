@@ -330,7 +330,13 @@ let level = getLevel(progress.level);
 const makeStats = () => {
   const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
   if (petOn() === 'toucan') s.refill *= 1.25;
-  if (petOn() === 'legend') s.refill *= 0.85; // the Ultimate Legend secretly makes things worse
+  if (petOn() === 'legend') {
+    // The Ultimate Legend secretly makes things worse: it's a heavy rock.
+    s.refill *= 0.85;
+    s.cruise -= 10; // 25% slower normal flying
+    s.boostSpeed *= 0.85; // and a slower turbo
+    s.maxHealth = Math.max(1, s.maxHealth - 1); // and it takes away a heart
+  }
   return s;
 };
 let stats = makeStats();
