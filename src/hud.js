@@ -155,9 +155,9 @@ export function createHud() {
 
       let html = '';
       if (s.state === 'ending' && s.ending) {
-        html = `<span class="ending">YOU ARE THE OMEGA LEGEND</span>
+        html = `<span class="ending">YOU'RE HIRED!</span>
           ${s.playerName ? `<b style="font-size:28px;color:#ffcf8a">${s.playerName.replace(/[<>&]/g, '')}</b>` : ''}
-          <small>The Omega is gone. From a dented dirt car all the way past the edge of the universe — you did it.<br>
+          <small>You saved the universe, beat the Omega, AND survived the job interview. Welcome to the team!<br>
           ${s.ending.pay} · ${s.ending.time}<br>
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
           Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.</small>`;

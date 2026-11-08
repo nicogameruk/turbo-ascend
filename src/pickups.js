@@ -64,6 +64,7 @@ const LOOKS = {
   21: { geo: () => new THREE.CapsuleGeometry(0.3, 0.4, 4, 8), color: 0xffcc33, rough: 0.15, metal: 1, emissive: 0x6a4a00, halo: 0xffe27a },
   22: { geo: () => new THREE.SphereGeometry(0.45, 16, 12), color: 0x9ad8ff, rough: 0.1, metal: 0.2, emissive: 0x3a8aff, halo: 0xd8f0ff },
   23: { geo: () => new THREE.SphereGeometry(0.5, 20, 14), color: 0xffd8f8, rough: 0.02, metal: 0.1, emissive: 0x8a6aaa, halo: 0xffffff, opacity: 0.55, rainbow: true },
+  25: { geo: () => roundBox(0.6, 0.8, 0.05, 0.02), color: 0xfafafa, rough: 0.8, metal: 0, emissive: 0x6a7a9a, halo: 0x9ac8ff },
   24: { geo: () => new THREE.IcosahedronGeometry(0.6, 0), color: 0xffffff, rough: 0.05, metal: 0.3, emissive: 0xc8a8ff, halo: 0xffffff, flat: true },
 };
 

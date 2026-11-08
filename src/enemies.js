@@ -986,10 +986,79 @@ function createBee() {
   };
 }
 
+// A canvas texture with a red rubber stamp on it (for the Rejection Letter).
+function stampTexture(word) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 160;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fbfaf4';
+  x.fillRect(0, 0, 256, 160);
+  x.strokeStyle = '#d8d2c0';
+  x.lineWidth = 3;
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(128, 80); x.lineTo(256, 0); x.stroke(); // envelope flap
+  x.save();
+  x.translate(128, 96);
+  x.rotate(-0.25);
+  x.strokeStyle = '#e0202a';
+  x.fillStyle = '#e0202a';
+  x.lineWidth = 7;
+  x.strokeRect(-100, -26, 200, 52);
+  x.font = 'bold 36px system-ui, sans-serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillText(word, 0, 2);
+  x.restore();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+let rejectedTex = null;
+
+// ---------- Rejection Letter (Job Application): flutters at you like a paper plane ----------
+function createLetter() {
+  const group = new THREE.Group();
+  rejectedTex ??= stampTexture('REJECTED');
+  const paper = new THREE.MeshStandardMaterial({ color: 0xfbfaf4, roughness: 0.9 });
+  const front = new THREE.MeshStandardMaterial({ map: rejectedTex, roughness: 0.9 });
+  // A box with the stamped face pointing at the car (+z).
+  const env = new THREE.Mesh(roundBox(1.3, 0.85, 0.06, 0.02), [paper, paper, paper, paper, front, paper]);
+  env.castShadow = true;
+  group.add(env);
+  let t, amp, freq, speed, cx, cy, spin;
+  return {
+    group,
+    radius: 1.2,
+    blastable: true,
+    start({ carPos, diff }) {
+      cx = THREE.MathUtils.clamp(carPos.x + rand(-4, 4), -BOUNDS.x, BOUNDS.x);
+      cy = THREE.MathUtils.clamp(carPos.y + rand(-2, 2), BOUNDS.yMin, BOUNDS.yMax);
+      group.position.set(cx, cy, -190);
+      t = rand(0, 6);
+      amp = rand(1, 2.8);
+      freq = rand(1.8, 3);
+      speed = 30 + diff * 1.2 + rand(0, 8);
+      spin = rand(-1, 1);
+    },
+    onRam() { group.position.z = 30; },
+    update(dt, { carPos }) {
+      const p = group.position;
+      t += dt;
+      p.z += speed * dt;
+      if (p.z < -12) { cx += (carPos.x - cx) * ease(0.7, dt); cy += (carPos.y - cy) * ease(0.7, dt); }
+      // Flutters side to side like falling paper.
+      p.x = cx + Math.sin(t * freq) * amp;
+      p.y = cy + Math.abs(Math.sin(t * freq * 2)) * 0.6;
+      group.rotation.set(Math.sin(t * freq * 2) * 0.35, spin * 0.3, Math.sin(t * freq) * 0.5);
+      return p.z < 25;
+    },
+  };
+}
+
 const FACTORIES = {
   bike: createBike, jet: createJet, ufo: createUfo, warship: createWarship, sniper: createSniper, demon: createDemon,
   pirate: createPirate, void: createVoid, glitch: createGlitch, dragon: createDragon, spirit: createSpirit,
-  shark: createShark, gummy: createGummy, bat: createBat, bee: createBee,
+  shark: createShark, gummy: createGummy, bat: createBat, bee: createBee, letter: createLetter,
 };
 
 export function createEnemies(scene, booms) {

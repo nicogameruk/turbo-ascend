@@ -63,6 +63,7 @@ export function createProgress() {
     started: false, // true once a game has been started (shows "Continue")
     name: '', // your racer name, picked when you start a new game
     playerId: '', // random id for the online leaderboard (new for every new game)
+    ownerCode: '', // only on the owner's device: lets the leaderboard accept a typed name
     pendingPoints: 0, // leaderboard points not sent yet
   };
 }
@@ -100,6 +101,7 @@ export function restoreProgress(progress, saved) {
   progress.name = typeof saved.name === 'string' ? saved.name.slice(0, 30) : '';
   progress.playerId = typeof saved.playerId === 'string' && /^[0-9a-f-]{36}$/.test(saved.playerId) ? saved.playerId : '';
   progress.pendingPoints = num(saved.pendingPoints, 0, 1e7, 0);
+  progress.ownerCode = typeof saved.ownerCode === 'string' ? saved.ownerCode.slice(0, 200) : '';
   return progress;
 }
 

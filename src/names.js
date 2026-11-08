@@ -14,6 +14,13 @@ const NOUNS = [
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+// The owner's names: never given out at random (the leaderboard also guards them).
+export const RESERVED_NAMES = ['Frosty Hamster 55'];
+const reserved = (name) => RESERVED_NAMES.some((r) => r.toLowerCase() === name.toLowerCase());
+
 export function randomName() {
-  return `${pick(ADJECTIVES)} ${pick(NOUNS)} ${1 + Math.floor(Math.random() * 99)}`;
+  let name;
+  do name = `${pick(ADJECTIVES)} ${pick(NOUNS)} ${1 + Math.floor(Math.random() * 99)}`;
+  while (reserved(name));
+  return name;
 }

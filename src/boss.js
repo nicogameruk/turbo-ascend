@@ -237,6 +237,49 @@ export function createBoss(scene) {
     }
   }
   const eaterParts = {};
+  const managerScreen = { mat: null };
+  { // The Hiring Manager: a giant office desk with a computer, a tie and a coffee
+    const g = extra('manager');
+    // Computer monitor showing a message
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 160;
+    const x = c.getContext('2d');
+    const draw = (word, col) => {
+      x.fillStyle = '#0a1a3a';
+      x.fillRect(0, 0, 256, 160);
+      x.fillStyle = col;
+      x.font = 'bold 54px system-ui, sans-serif';
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.fillText(word, 128, 80);
+    };
+    draw('NEXT!', '#4ad8ff');
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const screenMat = new THREE.MeshBasicMaterial({ map: tex });
+    managerScreen.mat = screenMat;
+    managerScreen.draw = (w, col) => { draw(w, col); tex.needsUpdate = true; };
+    const caseMat = new THREE.MeshStandardMaterial({ color: 0x2a2e36, roughness: 0.4, metalness: 0.5 });
+    put(g, roundBox(3.6, 2.2, 0.3, 0.1), caseMat, 0, 3.2, -0.6);
+    put(g, new THREE.PlaneGeometry(3.2, 1.9), screenMat, 0, 3.2, -0.44);
+    put(g, roundBox(0.3, 1.0, 0.3, 0.08), caseMat, 0, 1.9, -0.6);
+    // Shirt collar and a long red tie on the front
+    const white = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.6 });
+    for (const sd of [-1, 1]) {
+      const collar = put(g, new THREE.ConeGeometry(0.45, 0.8, 3), white, sd * 0.35, 0.9, 2.05);
+      collar.rotation.set(Math.PI / 2, 0, sd * 0.6);
+    }
+    const tieMat = new THREE.MeshStandardMaterial({ color: 0xc81a2a, roughness: 0.5 });
+    put(g, roundBox(0.35, 0.3, 0.12, 0.05), tieMat, 0, 0.75, 2.12);
+    const tie = put(g, new THREE.ConeGeometry(0.32, 1.6, 4), tieMat, 0, -0.25, 2.12);
+    tie.rotation.set(0, Math.PI / 4, Math.PI);
+    tie.scale.z = 0.35;
+    // A coffee mug and a stack of papers on the desk
+    put(g, new THREE.CylinderGeometry(0.35, 0.3, 0.6, 20), white, 2.6, 1.45, 0.6);
+    put(g, new THREE.TorusGeometry(0.18, 0.05, 8, 16), white, 2.98, 1.45, 0.6).rotation.y = Math.PI / 2;
+    put(g, roundBox(1.0, 0.5, 0.75, 0.04), new THREE.MeshStandardMaterial({ color: 0xfbfaf4, roughness: 0.9 }), -2.5, 1.35, 0.5);
+  }
   { // Gummy Giant: giant lollipops and sprinkles
     const g = extra('candy');
     const stick = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
@@ -395,7 +438,7 @@ export function createBoss(scene) {
       hullMat.metalness = cfg.metal ? 1 : 0.5;
       hullMat.roughness = cfg.metal ? 0.15 : 0.6;
       for (const [name, g] of Object.entries(extras)) g.visible = name === cfg.extra;
-      const noPods = ['saucer', 'demon', 'void', 'dragon', 'prism', 'eater', 'glitch'].includes(cfg.extra);
+      const noPods = ['saucer', 'demon', 'void', 'dragon', 'prism', 'eater', 'glitch', 'manager'].includes(cfg.extra);
       pods.forEach((m) => { m.visible = !noPods; });
       rotors.forEach((m) => { m.visible = !noPods; });
       const noHull = ['void', 'eater'].includes(cfg.extra);
@@ -476,6 +519,11 @@ export function createBoss(scene) {
         sirenMats[1].color.setHex(on ? 0x101840 : 0x2a60ff);
       }
       if (cfg.extra === 'saucer') extras.saucer.rotation.y += dt * 0.8;
+      if (cfg.extra === 'manager' && managerScreen.draw) {
+        const msgs = [['NEXT!', '#4ad8ff'], ['DENIED', '#ff4a5a'], ['ANY QUESTIONS?', '#ffd040'], ['HMM...', '#4ad8ff']];
+        const k = Math.floor(t / 2.5) % msgs.length;
+        if (k !== managerScreen.k) { managerScreen.k = k; managerScreen.draw(...msgs[k]); }
+      }
 
       // Explosion bits
       for (const b of booms) {

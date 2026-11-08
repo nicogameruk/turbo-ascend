@@ -14,3 +14,15 @@ The daily and weekly leaderboard stores scores in a free Supabase database.
 Both values are designed to be public: the game can only use the four leaderboard functions, and the database only accepts the game's own random names.
 
 **Never** share the `service_role` / secret key — the game doesn't need it.
+
+## Owner-only names (optional)
+
+Only the owner can type their own name, and names like "Frosty Hamster 55" are reserved for the owner.
+
+1. Open `docs/leaderboard-owner.sql`, replace `CHANGE-ME-TO-YOUR-SECRET-CODE` with your own secret code (at least 8 characters — a few random words is best).
+2. Paste it into Supabase → **SQL Editor** → **New query** and click **Run**. Don't save the file with your real code in it.
+3. In the game:
+   - **New name:** New Game → tap the small 🔑 on the name screen → enter your code and the name you want.
+   - **Keep your current name** (e.g. Frosty Hamster 55): Settings → 🔑 Owner → enter your code → Save.
+
+To reserve more names for yourself, run: `insert into public.reserved_names (name) values ('Another Name 12');`

@@ -43,7 +43,9 @@ export async function sendPoints(progress, save) {
   try {
     while (progress.pendingPoints > 0) {
       const chunk = Math.min(20000, progress.pendingPoints);
-      await rpc('add_score', { p_player: progress.playerId, p_name: progress.name, p_points: chunk });
+      const body = { p_player: progress.playerId, p_name: progress.name, p_points: chunk };
+      if (progress.ownerCode) body.p_code = progress.ownerCode; // owner's typed name
+      await rpc('add_score', body);
       progress.pendingPoints -= chunk;
       save();
     }
@@ -52,6 +54,13 @@ export async function sendPoints(progress, save) {
   } finally {
     sending = false;
   }
+}
+
+// Owner names: the database checks the secret code (the game never knows the right one).
+export const OWNER_NAME_RULE = /^[A-Za-z0-9 _.!-]{1,20}$/;
+export async function checkOwnerCode(code) {
+  if (!leaderboardOn()) return false;
+  try { return (await rpc('check_owner', { p_code: code })) === true; } catch { return false; }
 }
 
 // Starting over: the old racer's scores are removed from the boards.

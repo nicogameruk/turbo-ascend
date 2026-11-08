@@ -324,6 +324,20 @@ export const LEVELS = [
     music: { root: 38, scale: MINOR, tempo: 150, lead: 'sawtooth' },
     ability: 'omega',
   },
+  // ---- The bonus level: after saving the universe, you still need a job ----
+  {
+    n: 25, name: 'Job Application', material: 'Résumé Pages', goal: 50,
+    sky: ['#c8d0d8', '#f0f2f4'], sky2: ['#a8b0b8', '#fff4e0'], fog: 0xe8ecf0, hemi: [0xf4f8ff, 0x8a909a],
+    ground: { base: '#6a7280', hue: [210, 225], sat: [8, 18], light: [34, 48], furrow: '#4a5260' },
+    scenery: { shape: 'tower', color: 0x9aa0a8, metal: true },
+    cloud: { color: 0xffffff, emissive: 0xc8d0d8, opacity: 0.55 },
+    enemies: { chasers: 2, waves: [{ type: 'letter', every: [1.2, 2.2], max: 5 }, { type: 'glitch', every: [8, 11], max: 1 }] },
+    hazards: [{ type: 'lava', every: [8, 11] }, { type: 'lightning', every: [8, 11] }],
+    warnings: { lava: 'DEADLINE WALL — fly over it!', lightning: 'POWER SURGE!' },
+    boss: { name: 'THE HIRING MANAGER', hp: 45, hull: 0x5a6270, fireEvery: 0.6, extra: 'manager', minion: 'letter', patterns: ['ring', 'minions', 'slow'] },
+    music: { root: 53, scale: MAJOR, tempo: 96, lead: 'triangle' },
+    ability: 'coffee',
+  },
 ];
 
 // Colour and icon for each level's pop-ups (like "ability ready").
@@ -352,6 +366,7 @@ export const LEVEL_THEMES = {
   22: { accent: '#9ad8ff', glow: '#1a2a4a', icon: '⛈️' },
   23: { accent: '#ffb8f0', glow: '#6a5aaa', icon: '💭', rainbow: true },
   24: { accent: '#ffffff', glow: '#6a2aaa', icon: 'Ω' },
+  25: { accent: '#4a90ff', glow: '#1a2238', icon: '💼' },
 };
 
 export const LAST_LEVEL = LEVELS.length;

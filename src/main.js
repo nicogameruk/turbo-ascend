@@ -23,7 +23,7 @@ import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from 
 import { createTouchControls } from './touch.js';
 import { createToppers } from './toppers.js';
 import { createPet } from './pets.js';
-import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView } from './leaderboard.js';
+import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView, checkOwnerCode, OWNER_NAME_RULE } from './leaderboard.js';
 import { BOUNDS } from './car.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -252,16 +252,16 @@ const garage = createGarage(progress, {
 });
 
 const menus = createMenus({
-  onContinue: (name) => {
-    if (name) { progress.name = name; progress.playerId = newPlayerId(); save(); }
+  onContinue: (name, ownerCode = '') => {
+    if (name) { progress.name = name; progress.ownerCode = ownerCode; progress.playerId = newPlayerId(); save(); }
     menus.hide();
     openGarage();
   },
-  onNewGame: (name) => {
+  onNewGame: (name, ownerCode = '') => {
     const settings = progress.settings;
     // The old racer's leaderboard scores are dropped; the new name starts from zero.
     forgetPlayer(progress.playerId);
-    Object.assign(progress, createProgress(), { settings, started: true, name, playerId: newPlayerId() });
+    Object.assign(progress, createProgress(), { settings, started: true, name, ownerCode, playerId: newPlayerId() });
     save();
     menus.hide();
     car.applyUpgrades(progress.levels);
@@ -282,6 +282,9 @@ const menus = createMenus({
     showTitle();
   },
   onLeaders: () => boardMenu.render(),
+  onCheckOwner: (code) => checkOwnerCode(code),
+  onOwnerCode: (code) => { progress.ownerCode = code; save(); sendPoints(progress, save); },
+  ownerNameRule: OWNER_NAME_RULE,
   sound: (n) => audio.play(n),
 });
 menus.setSettings(progress.settings);
@@ -533,7 +536,7 @@ const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
   nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap',
   tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
-  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast',
+  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready',
 };
 
 function useAbility() {
@@ -614,6 +617,13 @@ function useAbility() {
     if (state === 'boss') boss.hurt(2);
     hud.flash(0.6);
     hud.banner(`⚡ THUNDERSTRIKE! ${targets.length + (state === 'boss' ? 1 : 0)} zapped`, 1.2);
+  }
+  if (id === 'coffee') {
+    health = Math.min(stats.maxHealth, health + 1);
+    car.fuel = 1;
+    slowT = Math.max(slowT, dur);
+    sparks.burst(pos, 18, 0xc89a6a);
+    hud.banner('☕ COFFEE BREAK!', 1.5);
   }
   if (id === 'dreamheal') {
     health = Math.min(stats.maxHealth, health + 2);
@@ -860,7 +870,8 @@ function update(dt, time) {
   }
 
   const started = hazards.update(edt, hazardCtx, state === 'flying');
-  if (started && HAZARD_WARNINGS[started]) hud.banner(HAZARD_WARNINGS[started], 2);
+  const warning = level.warnings?.[started] ?? HAZARD_WARNINGS[started];
+  if (started && warning) hud.banner(warning, 2);
   if (state === 'over') return;
 
   if (state === 'flying') {
