@@ -15,6 +15,7 @@ function seeded(seed) {
 export function createAudio() {
   let ctx = null;
   let master, musicBus, sfxBus, noiseBuf;
+  let echoIn, echoDelay, echoWet; // echo effect for the music
   let engine = null;
   let settings = { volume: 0.7, music: true, sfx: true };
 
@@ -34,6 +35,18 @@ export function createAudio() {
     master.connect(ctx.destination);
     musicBus = ctx.createGain();
     musicBus.connect(master);
+    // Echo: notes sent to echoIn repeat a few times, getting quieter.
+    echoIn = ctx.createGain();
+    echoDelay = ctx.createDelay(1.5);
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.35;
+    echoWet = ctx.createGain();
+    echoWet.gain.value = 0;
+    echoIn.connect(echoDelay);
+    echoDelay.connect(feedback);
+    feedback.connect(echoDelay);
+    echoDelay.connect(echoWet);
+    echoWet.connect(musicBus);
     sfxBus = ctx.createGain();
     sfxBus.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -141,63 +154,242 @@ export function createAudio() {
     fanfare: () => { [0, 4, 7, 12].forEach((s, i) => tone(mtof(67 + s), { type: 'square', at: i * 0.1, dur: i === 3 ? 0.4 : 0.12, vol: 0.14 })); },
   };
 
-  // Build a 2-bar loop (32 steps) from the level's root, scale and a seed.
-  function makeSong(music, seed) {
+  // ---------------- Music ----------------
+  // Every level has its own style: drum pattern, bass line, instruments and echo.
+  // Drum patterns are one bar of 16 steps: x = hit, . = rest.
+  const STYLES = {
+    rock: { // Dirt: dusty rock
+      kick: 'x.....x.x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.',
+      bass: 'root8', bassWave: 'triangle',
+      lead: { wave: 'square', octave: 1, density: 0.5, len: 1.4, vol: 0.09, filter: 2200 },
+    },
+    folk: { // Grass: bouncy and happy
+      kick: 'x.......x.......', snare: '....x.......x...', shaker: 'xxxxxxxxxxxxxxxx',
+      bass: 'bounce', bassWave: 'triangle',
+      lead: { wave: 'triangle', octave: 1, density: 0.6, len: 1, vol: 0.13 },
+      arp: { wave: 'triangle', octave: 2, every: 2, vol: 0.05 },
+      delay: 0.22,
+    },
+    heavy: { // Stone: slow and heavy
+      kick: 'x..x..x...x..x..', snare: '....x.......x...', hat: 'x...x...x...x...', tom: '............x.xx',
+      bass: 'heavy', bassWave: 'sawtooth', bassFilter: 500,
+      lead: { wave: 'sawtooth', octave: 0, density: 0.3, len: 2, vol: 0.07, filter: 900 },
+    },
+    industrial: { // Iron: clanky machines
+      kick: 'x...x...x...x...', snare: '....x.......x..x', metal: '..x...x...x...x.', hat: 'xxxxxxxxxxxxxxxx',
+      bass: 'pulse16', bassWave: 'square', bassFilter: 700,
+      lead: { wave: 'square', octave: 1, density: 0.35, len: 0.8, vol: 0.06, filter: 1800 },
+      delay: 0.15,
+    },
+    funk: { // Gold: funky and shiny
+      kick: 'x..x......x..x..', snare: '....x..x....x...', hat: 'x.xxx.xxx.xxx.xx',
+      bass: 'funk', bassWave: 'square', bassFilter: 900,
+      stab: true,
+      lead: { wave: 'triangle', octave: 1, density: 0.35, len: 1, vol: 0.1 },
+      delay: 0.1,
+    },
+    crystal: { // Diamond: sparkly bells
+      kick: 'x.......x.......', snare: '........x.......', hat: '..x...x...x...x.',
+      bass: 'root4', bassWave: 'sine',
+      bell: { octave: 2, every: 2 },
+      lead: { wave: 'sine', octave: 2, density: 0.35, len: 2.5, vol: 0.09 },
+      delay: 0.35, softDrums: true,
+    },
+    ethereal: { // Angel: dreamy harp and soft pads, no drums
+      bass: 'long', bassWave: 'sine',
+      pad: true, harp: true,
+      lead: { wave: 'sine', octave: 1, density: 0.25, len: 4, vol: 0.09 },
+      delay: 0.4,
+    },
+    synthwave: { // Galaxy: retro space synths
+      kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.',
+      bass: 'octave8', bassWave: 'sawtooth', bassFilter: 800,
+      pad: true,
+      arp: { wave: 'sawtooth', octave: 1, every: 1, vol: 0.035, filter: 2500 },
+      lead: { wave: 'sawtooth', octave: 1, density: 0.3, len: 2, vol: 0.06, filter: 2000 },
+      delay: 0.3,
+    },
+    dark: { // Black Hole: slow, deep and spooky
+      kick: 'x...........x...', tom: '......x.........',
+      bass: 'drone', bassWave: 'sawtooth', bassFilter: 300,
+      pad: true,
+      lead: { wave: 'sine', octave: 0, density: 0.15, len: 6, vol: 0.08 },
+      delay: 0.45,
+    },
+    techno: { // Neon Cyber: four-on-the-floor club beat
+      kick: 'x...x...x...x...', clap: '....x.......x...', openhat: '..x...x...x...x.', hat: 'x.x.x.x.x.x.x.x.',
+      bass: 'offbeat', bassWave: 'sawtooth', bassFilter: 1200,
+      arp: { wave: 'square', octave: 1, every: 1, vol: 0.035, filter: 3000 },
+      lead: { wave: 'square', octave: 2, density: 0.2, len: 0.8, vol: 0.05 },
+      delay: 0.25,
+    },
+    clockwork: { // Time Warp: ticking clocks
+      kick: 'x.......x.......', snare: '....x.......x...', block: 'x.x.x.x.x.x.x.x.',
+      bass: 'walk', bassWave: 'triangle',
+      lead: { wave: 'triangle', octave: 1, density: 0.55, len: 0.5, vol: 0.12 },
+      delay: 0.15, swing: 0.18,
+    },
+    epic: { // Dragon Realm: big war drums
+      kick: 'x.....x.x.....x.', taiko: 'x..x..x.x..x..x.', snare: '....x.......x...',
+      bass: 'root8', bassWave: 'sawtooth', bassFilter: 600,
+      pad: true, padWave: 'sawtooth',
+      lead: { wave: 'sawtooth', octave: 1, density: 0.4, len: 1.6, vol: 0.08, filter: 1600 },
+      delay: 0.15,
+    },
+    chip: { // Rainbow Prism: fast video-game chiptune
+      kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.',
+      bass: 'octave8', bassWave: 'square', bassFilter: 1500,
+      arp: { wave: 'square', octave: 2, every: 1, vol: 0.04 },
+      lead: { wave: 'square', octave: 1, density: 0.6, len: 0.9, vol: 0.08 },
+    },
+    cosmic: { // Cosmic God: the big finale, everything at once
+      kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', taiko: '............x.x.',
+      bass: 'octave8', bassWave: 'sawtooth', bassFilter: 900,
+      pad: true,
+      arp: { wave: 'sawtooth', octave: 2, every: 1, vol: 0.03, filter: 3000 },
+      lead: { wave: 'sawtooth', octave: 1, density: 0.45, len: 1.5, vol: 0.07, filter: 2500 },
+      delay: 0.3,
+    },
+  };
+  const LEVEL_STYLE = {
+    1: 'rock', 2: 'folk', 3: 'heavy', 4: 'industrial', 5: 'funk', 6: 'crystal', 7: 'ethereal',
+    8: 'synthwave', 9: 'dark', 10: 'techno', 11: 'clockwork', 12: 'epic', 13: 'chip', 14: 'cosmic',
+  };
+  const hit = (pattern, i) => !!pattern && pattern[i % 16] === 'x';
+
+  // Build a 2-bar loop (32 steps) from the level's root, scale, style and a seed.
+  function makeSong(music, seed, styleName) {
+    const style = STYLES[styleName] ?? STYLES.rock;
     const r = seeded(seed);
     const note = (deg, oct = 0) => {
       const s = music.scale;
       const i = ((deg % s.length) + s.length) % s.length;
       return music.root + s[i] + 12 * (oct + Math.floor(deg / s.length));
     };
+    const chordTones = (c) => [c, c + 2, c + 4];
     const chords = [0, Math.floor(r() * 3) + 3, Math.floor(r() * 2) + 4, Math.floor(r() * 4)];
     const steps = [];
     for (let i = 0; i < 32; i++) {
       const chord = chords[Math.floor(i / 8)];
-      const step = { kick: i % 8 === 0 || (i % 8 === 6 && r() < 0.4), snare: i % 8 === 4, hat: i % 2 === 1 };
-      if (i % 4 === 0 || (i % 4 === 3 && r() < 0.5)) step.bass = note(chord, -1);
-      if (r() < 0.55) step.lead = note(chord + [0, 2, 4, 7][Math.floor(r() * 4)], 1);
-      steps.push(step);
+      const inChord = i % 8;
+      const s = {
+        kick: hit(style.kick, i), snare: hit(style.snare, i), clap: hit(style.clap, i),
+        hat: hit(style.hat, i), openhat: hit(style.openhat, i), shaker: hit(style.shaker, i),
+        tom: hit(style.tom, i), taiko: hit(style.taiko, i), metal: hit(style.metal, i),
+        block: hit(style.block, i) ? (i % 4 === 0 ? 1 : 2) : 0,
+      };
+      // Bass line
+      const root = note(chord, -1);
+      const b = style.bass;
+      if (b === 'root8' && i % 2 === 0) s.bass = [root, 1];
+      if (b === 'root4' && i % 4 === 0) s.bass = [root, 3];
+      if (b === 'bounce' && i % 2 === 0) s.bass = [i % 4 === 0 ? root : note(chord + 4, -1), 1];
+      if (b === 'heavy' && s.kick) s.bass = [root - 12, 2];
+      if (b === 'pulse16') s.bass = [root, 0.6];
+      if (b === 'funk' && hit('x..x..x.x.x..x..', i)) s.bass = [r() < 0.3 ? root + 12 : root, 0.8];
+      if (b === 'long' && inChord === 0) s.bass = [root, 8];
+      if (b === 'drone' && i % 16 === 0) s.bass = [root - 12, 16];
+      if (b === 'octave8' && i % 2 === 0) s.bass = [i % 4 === 0 ? root : root + 12, 1];
+      if (b === 'offbeat' && i % 4 === 2) s.bass = [root, 1.2];
+      if (b === 'walk' && i % 4 === 0) s.bass = [note(chord + [0, 2, 4, 5][(i / 4) % 4], -1), 3];
+      // Chords, arpeggios and melody
+      if (style.pad && inChord === 0) s.pad = chordTones(chord).map((d) => note(d, 0));
+      if (style.stab && i % 4 === 2) s.stab = chordTones(chord).map((d) => note(d, 1));
+      if (style.arp && i % style.arp.every === 0) s.arp = note(chordTones(chord)[(i / style.arp.every) % 3] + (Math.floor(i / 3) % 2 ? 7 : 0), style.arp.octave);
+      if (style.bell && i % style.bell.every === 0 && r() < 0.7) s.bell = note(chordTones(chord)[Math.floor(r() * 3)], style.bell.octave);
+      if (style.harp) s.harp = note(chordTones(chord)[i % 3] + (Math.floor(i / 3) % 2) * 7, 1);
+      const L = style.lead;
+      if (L && (i % 2 === 0 || L.density > 0.5) && r() < L.density) s.lead = note(chord + [0, 2, 4, 7][Math.floor(r() * 4)], L.octave);
+      steps.push(s);
     }
-    return { music, steps };
+    return { music, style, steps };
   }
 
   function playStep(step, t) {
+    const st = song.style;
     const len = 60 / (song.music.tempo * (intensity ? 1.08 : 1)) / 4;
     const bus = musicBus;
-    if (step.kick) {
-      const o = ctx.createOscillator();
+    const soft = st.softDrums ? 0.5 : 1;
+
+    // A note: one or two oscillators, optional low-pass filter, optional echo.
+    const voice = (m, type, dur, vol, { filter, attack = 0.01, detune = 0, echo = true } = {}) => {
       const g = ctx.createGain();
-      o.frequency.setValueAtTime(140, t);
-      o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
-      g.gain.setValueAtTime(0.9, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.22);
-    }
-    const nz = (dur, vol, freq, type) => {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(dur, attack + 0.02));
+      let out = g;
+      if (filter) {
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.value = filter;
+        g.connect(f);
+        out = f;
+      }
+      out.connect(bus);
+      if (echo && st.delay) out.connect(echoIn);
+      for (const d of detune ? [-detune, detune] : [0]) {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = mtof(m);
+        o.detune.value = d;
+        o.connect(g);
+        o.start(t);
+        o.stop(t + dur + 0.05);
+      }
+    };
+    const nz = (dur, vol, freq, type, q = 1) => {
       const src = ctx.createBufferSource();
       src.buffer = noiseBuf;
       const f = ctx.createBiquadFilter();
-      f.type = type; f.frequency.value = freq;
+      f.type = type;
+      f.frequency.value = freq;
+      f.Q.value = q;
       const g = ctx.createGain();
       g.gain.setValueAtTime(vol, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       src.connect(f); f.connect(g); g.connect(bus);
       src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.01);
     };
-    if (step.snare) nz(0.15, 0.35, 1800, 'bandpass');
-    if (step.hat) nz(0.04, intensity ? 0.2 : 0.12, 7000, 'highpass');
-    const voice = (m, type, dur, vol) => {
+    const drum = (from, to, dur, vol) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
-      o.type = type;
-      o.frequency.value = mtof(m);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+      o.frequency.setValueAtTime(from, t);
+      o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.8);
+      g.gain.setValueAtTime(vol, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.02);
     };
-    if (step.bass) voice(step.bass, 'triangle', len * 3, 0.5);
-    if (step.lead) voice(step.lead + (intensity ? 12 : 0), song.music.lead, len * 1.6, 0.12);
+
+    // Drums
+    if (step.kick) drum(140, 40, 0.2, 0.9 * soft);
+    if (step.snare) nz(0.15, 0.35 * soft, 1800, 'bandpass');
+    if (step.clap) { nz(0.05, 0.3, 1500, 'bandpass', 2); nz(0.12, 0.25, 1200, 'bandpass', 2); }
+    if (step.hat || (intensity && !st.hat && step.kick === false && st.kick)) nz(0.04, (intensity ? 0.2 : 0.12) * soft, 7000, 'highpass');
+    if (step.openhat) nz(0.2, 0.12, 8000, 'highpass');
+    if (step.shaker) nz(0.05, 0.06, 6000, 'highpass');
+    if (step.tom) drum(170, 70, 0.3, 0.6);
+    if (step.taiko) { drum(95, 45, 0.45, 0.9); nz(0.08, 0.2, 400, 'lowpass'); }
+    if (step.metal) { nz(0.12, 0.25, 3200, 'bandpass', 8); voice(91, 'square', 0.08, 0.03, { echo: false }); }
+    if (step.block) voice(step.block === 1 ? 96 : 91, 'sine', 0.05, 0.25, { echo: false });
+
+    // Bass, chords and melody
+    if (step.bass) voice(step.bass[0], st.bassWave, len * step.bass[1] * 1.6, 0.45, { filter: st.bassFilter, echo: false });
+    if (step.pad) for (const m of step.pad) voice(m, st.padWave ?? 'sawtooth', len * 8, 0.035, { filter: 1400, attack: 0.25, detune: 8 });
+    if (step.stab) for (const m of step.stab) voice(m, 'square', len * 0.6, 0.04, { filter: 2400 });
+    if (step.arp) voice(step.arp + (intensity ? 12 : 0), st.arp.wave, len * 0.9, st.arp.vol, { filter: st.arp.filter });
+    if (step.bell) { voice(step.bell, 'sine', len * 6, 0.07); voice(step.bell + 19, 'sine', len * 2, 0.02); }
+    if (step.harp) voice(step.harp, 'triangle', len * 5, 0.05);
+    if (step.lead) {
+      const L = st.lead;
+      voice(step.lead + (intensity ? 12 : 0), L.wave, len * L.len, L.vol, { filter: L.filter, detune: L.wave === 'sawtooth' ? 6 : 0 });
+    }
+  }
+
+  // Echo lands on the beat (three 16th-notes later), as loud as the style wants.
+  function applyEcho() {
+    if (!ctx || !song) return;
+    echoDelay.delayTime.value = Math.min(1.4, (60 / song.music.tempo / 4) * 3);
+    echoWet.gain.setTargetAtTime(song.style.delay ?? 0, ctx.currentTime, 0.1);
   }
 
   function schedule() {
@@ -205,7 +397,9 @@ export function createAudio() {
     const len = 60 / (song.music.tempo * (intensity ? 1.08 : 1)) / 4;
     if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
     while (nextTime < ctx.currentTime + 0.15) {
-      playStep(song.steps[songStep % song.steps.length], nextTime);
+      // Swing: every second step comes in a little late (Time Warp's clock feel).
+      const swing = songStep % 2 ? (song.style.swing ?? 0) * len : 0;
+      playStep(song.steps[songStep % song.steps.length], nextTime + swing);
       songStep++;
       nextTime += len;
     }
@@ -214,8 +408,10 @@ export function createAudio() {
   return {
     // Call from a key press or click.
     unlock() {
+      const fresh = !ctx;
       init();
       if (ctx?.state === 'suspended') ctx.resume();
+      if (fresh) applyEcho();
     },
 
     setSettings(s) {
@@ -240,8 +436,9 @@ export function createAudio() {
     music(level, boss = false) {
       intensity = boss ? 1 : 0;
       if (song?.music !== level.music) {
-        song = makeSong(level.music, level.n * 7 + 3);
+        song = makeSong(level.music, level.n * 7 + 3, LEVEL_STYLE[level.n]);
         songStep = 0;
+        applyEcho();
       }
       if (!timer) timer = setInterval(schedule, 25);
     },
