@@ -13,6 +13,7 @@ export const SHOP = {
     { id: 'hotdog', name: 'Hot Dog', cost: 120, icon: '🌭', desc: '+25% coins (with mustard)' },
     { id: 'rocket', name: 'Rocket', cost: 150, icon: '🚀', desc: 'Turbo lasts 30% longer' },
     { id: 'saucer', name: 'Flying Saucer', cost: 180, icon: '🛸', desc: 'Tractor beam pulls material in from further away' },
+    { id: 'gp', name: 'Classic Grand Prix', cost: 220, icon: '🏁', desc: 'Detailed open-wheel racer: 8% faster turbo and steers 8% faster' },
   ],
   paint: [
     { id: 'level', name: 'Level look', cost: 0 },
@@ -123,6 +124,7 @@ export function applyBodyPerk(stats, bodyId) {
     case 'hotdog': stats.coinMult *= 1.25; break;
     case 'rocket': stats.fuelDrain /= 1.3; break;
     case 'saucer': stats.magnet += 6; break;
+    case 'gp': stats.boostSpeed *= 1.08; stats.steerSpeed *= 1.08; break;
     default: break;
   }
   return stats;

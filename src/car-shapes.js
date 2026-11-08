@@ -130,6 +130,73 @@ const SHAPES = {
     }
   } },
 
+  // A detailed classic Grand Prix car (an original design, in your own paint colour).
+  // Open wheels, pointed nose, wings with endplates, sidepods and an airbox.
+  gp: { roofY: 0.22, roofZ: -0.32, compact: true, build(b) { // hat/helmet sits in the cockpit
+    const carbon = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.35, metalness: 0.4 });
+    const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f4f6, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.1 });
+    const rubber = new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.9 });
+    const rim = new THREE.MeshStandardMaterial({ color: 0xc8ccd4, roughness: 0.2, metalness: 1 });
+    const tyreText = new THREE.MeshStandardMaterial({ color: 0xe8e8ea, roughness: 0.6 });
+    const along = (m) => { m.rotation.x = Math.PI / 2; return m; };
+
+    // Nose: a long tapered cone, a little flattened
+    const nose = along(b.add(new THREE.CylinderGeometry(0.42, 0.13, 2.0, 24), b.paint, 0, -0.02, -2.25));
+    nose.scale.set(1, 1, 0.62);
+    const noseTip = b.add(new THREE.SphereGeometry(0.13, 16, 10), b.paint, 0, -0.02, -3.25);
+    noseTip.scale.set(1, 0.62, 1);
+    // Front wing: two carbon planes with endplates
+    b.box(2.7, 0.04, 0.5, carbon, 0, -0.24, -3.05);
+    b.box(2.5, 0.035, 0.28, b.paint, 0, -0.14, -2.85).rotation.x = -0.25;
+    for (const sd of [-1, 1]) b.box(0.04, 0.28, 0.62, carbon, sd * 1.35, -0.14, -3.0);
+    // Survival cell (tub) and cockpit
+    b.box(0.95, 0.5, 2.0, b.paint, 0, 0.02, -0.4);
+    b.box(0.62, 0.12, 0.85, carbon, 0, 0.27, -0.3); // cockpit opening
+    b.box(0.97, 0.08, 1.4, white, 0, 0.27, -0.95); // white stripe on the top
+    // Little windscreen
+    const screen = b.box(0.5, 0.16, 0.03, new THREE.MeshPhysicalMaterial({ color: 0x88aacc, transparent: true, opacity: 0.45, roughness: 0.05 }), 0, 0.36, -0.78);
+    screen.rotation.x = -0.4;
+    // Engine cover rising behind the driver, with the airbox intake on top
+    const cover = b.box(0.62, 0.42, 1.6, b.paint, 0, 0.3, 0.75);
+    cover.rotation.x = 0.08;
+    b.box(0.36, 0.22, 0.3, b.paint, 0, 0.58, 0.18);
+    const intake = b.add(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 16), carbon, 0, 0.6, 0.02);
+    intake.rotation.x = Math.PI / 2;
+    // Sidepods with radiator inlets
+    for (const sd of [-1, 1]) {
+      b.box(0.62, 0.38, 1.7, b.paint, sd * 0.74, -0.04, 0.55);
+      b.box(0.5, 0.26, 0.04, carbon, sd * 0.74, -0.02, -0.31);
+      b.box(0.64, 0.06, 1.5, white, sd * 0.74, 0.16, 0.6); // white side stripe
+    }
+    // Rear wing: two elements high up, big endplates and a centre pylon
+    b.box(2.0, 0.05, 0.42, b.paint, 0, 0.98, 2.25);
+    b.box(2.0, 0.04, 0.3, carbon, 0, 0.82, 2.2).rotation.x = -0.3;
+    for (const sd of [-1, 1]) b.box(0.05, 0.7, 0.75, carbon, sd * 1.03, 0.68, 2.2);
+    b.box(0.08, 0.6, 0.2, carbon, 0, 0.5, 2.15);
+    b.box(1.4, 0.2, 0.5, carbon, 0, -0.22, 2.15); // diffuser
+    // Mirrors on stalks
+    for (const sd of [-1, 1]) {
+      b.box(0.36, 0.03, 0.04, carbon, sd * 0.55, 0.33, -0.55);
+      b.box(0.18, 0.1, 0.06, carbon, sd * 0.75, 0.36, -0.55);
+    }
+    // Open wheels: rubber tyres, shiny rims, and suspension arms reaching out to them
+    for (const [z, r, w] of [[-1.75, 0.42, 0.42], [1.55, 0.5, 0.6]]) {
+      for (const sd of [-1, 1]) {
+        const x = sd * 1.28;
+        const tyre = b.add(new THREE.CylinderGeometry(r, r, w, 36), rubber, x, 0.0, z);
+        tyre.rotation.z = Math.PI / 2;
+        const hub = b.add(new THREE.CylinderGeometry(r * 0.62, r * 0.62, w + 0.02, 24), rim, x, 0.0, z);
+        hub.rotation.z = Math.PI / 2;
+        const band = b.add(new THREE.TorusGeometry(r * 0.82, 0.015, 6, 36), tyreText, x + sd * (w / 2 + 0.005), 0.0, z);
+        band.rotation.y = Math.PI / 2;
+        for (const dy of [-0.08, 0.1]) {
+          const arm = b.add(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8), carbon, sd * 0.78, dy, z);
+          arm.rotation.z = Math.PI / 2;
+        }
+      }
+    }
+  } },
+
   // A giant pencil (Doodle Land turns your car into one).
   pencil: { roofY: 0.75, compact: true, build(b) {
     const yellow = new THREE.MeshStandardMaterial({ color: 0xffc81a, roughness: 0.55 });
@@ -182,7 +249,7 @@ export function buildShapes(parent, mats) {
     group.visible = false;
     def.build(builder(group, mats));
     parent.add(group);
-    out[id] = { group, roofY: def.roofY, compact: !!def.compact };
+    out[id] = { group, roofY: def.roofY, roofZ: def.roofZ, compact: !!def.compact };
   }
   return out;
 }

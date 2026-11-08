@@ -550,6 +550,7 @@ export function createCar() {
       shape = shapes[id] ?? shapes.roadster;
       shape.group.visible = true;
       car.topperSlot.position.y = shape.roofY;
+      car.topperSlot.position.z = shape.roofZ ?? 0.3;
       if (lastLevels) car.applyUpgrades(lastLevels);
       car.setTier(tier);
     },
