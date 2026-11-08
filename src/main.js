@@ -784,6 +784,7 @@ function win() {
   const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
   coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
+  if (level.n === LAST_LEVEL) coinsEarned += 10000; // prize for beating the final level
   addRunPoints(true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
