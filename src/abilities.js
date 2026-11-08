@@ -34,6 +34,7 @@ export const ABILITIES = {
   repair: { name: 'Repair Kit', desc: 'Fix 1 heart', active: true, shop: true, cost: 60, cooldown: 25 },
   doubleup: { name: 'Double Up', desc: 'Material counts double for 8 s', active: true, shop: true, cost: 70, cooldown: 22, duration: 8 },
   rainmaster: { name: 'Rain Master', desc: 'Drive like a legend in the wet: for 4 s everything else slows down and nearby shots wash away', active: true, shop: true, cost: 120, cooldown: 18, duration: 4 },
+  webslinger: { name: 'Web Slinger', desc: 'Shoot sticky webs that wrap up the 5 nearest enemies and catch shots close to you (the boss gets webbed once)', active: true, shop: true, cost: 130, cooldown: 13 },
   missiles: { name: 'Homing Missiles', desc: 'Fire 4 missiles at the nearest enemies (one hits the boss)', active: true, shop: true, cost: 90, cooldown: 12 },
 };
 

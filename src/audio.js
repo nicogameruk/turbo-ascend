@@ -151,6 +151,8 @@ export function createAudio() {
     dash: () => { noise({ dur: 0.35, vol: 0.4, freq: 3000, type: 'bandpass', sweep: 0.2 }); },
     blast: () => { noise({ dur: 1, vol: 0.6, freq: 4000, sweep: 0.05 }); tone(880, { type: 'sine', dur: 0.8, vol: 0.25, slide: 0.25 }); },
     thunder: () => { noise({ dur: 1.2, vol: 0.6, freq: 400, sweep: 0.3 }); noise({ dur: 0.15, vol: 0.4, freq: 5000, type: 'highpass' }); },
+    // A quick 'thwip' for shooting webs: a fast falling zip plus a sticky snap.
+    thwip: () => { noise({ dur: 0.18, vol: 0.35, freq: 4000, type: 'bandpass', sweep: 0.25 }); tone(1400, { type: 'triangle', dur: 0.12, vol: 0.08, slide: 0.4 }); },
     whoosh: () => { noise({ dur: 0.6, vol: 0.25, freq: 300, type: 'bandpass', sweep: 4 }); },
     count: () => { tone(523, { type: 'square', dur: 0.14, vol: 0.14 }); },
     go: () => { tone(1046, { type: 'square', dur: 0.35, vol: 0.15 }); tone(1568, { type: 'triangle', dur: 0.4, vol: 0.1 }); },

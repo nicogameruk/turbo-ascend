@@ -183,6 +183,34 @@ function updateMissiles(dt) {
 }
 const clearMissiles = () => missiles.forEach((m) => { m.alive = false; m.mesh.visible = false; });
 
+// Web Slinger (shop ability): white web lines from the car to each target, fading out fast.
+const WEB_MAX = 8;
+const webPos = new Float32Array(WEB_MAX * 3 * 2 * 3); // 3 strands per web, 2 points each
+const webGeo = new THREE.BufferGeometry();
+webGeo.setAttribute('position', new THREE.BufferAttribute(webPos, 3));
+const webMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
+const webLines = new THREE.LineSegments(webGeo, webMat);
+webLines.frustumCulled = false;
+scene.add(webLines);
+let webT = 0;
+function shootWebs(from, targets) {
+  webPos.fill(0);
+  targets.slice(0, WEB_MAX).forEach((t, i) => {
+    for (let k = 0; k < 3; k++) {
+      // three slightly spread strands, so it looks like a sticky web line
+      const o = (i * 3 + k) * 6;
+      webPos.set([from.x + (k - 1) * 0.25, from.y + 0.6, from.z - 1, t.pos.x + (k - 1) * 0.6, t.pos.y + (k - 1) * 0.4, t.pos.z], o);
+    }
+  });
+  webGeo.attributes.position.needsUpdate = true;
+  webT = 0.6;
+}
+function updateWebs(dt) {
+  webT = Math.max(0, webT - dt);
+  webMat.opacity = webT / 0.6;
+  webLines.visible = webT > 0;
+}
+
 const toppers = createToppers(car.topperSlot);
 const pet = createPet(scene);
 const petIs = (id) => progress.equipped.pet === id;
@@ -547,7 +575,7 @@ const hazardCtx = {
 
 const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
-  nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap', rainmaster: 'whoosh',
+  nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap', rainmaster: 'whoosh', webslinger: 'thwip',
   tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
   helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready', scribble: 'whoosh',
 };
@@ -630,6 +658,16 @@ function useAbility() {
     if (state === 'boss') boss.hurt(2);
     hud.flash(0.6);
     hud.banner(`⚡ THUNDERSTRIKE! ${targets.length + (state === 'boss' ? 1 : 0)} zapped`, 1.2);
+  }
+  if (id === 'webslinger') {
+    const targets = enemies.targets(pos, 5);
+    shootWebs(pos, targets);
+    for (const t of targets) { booms.spawn(t.pos, 0xf4f4f4, 1.2); t.destroy(); }
+    const caught = shots.clearNear(pos, 10) + (state === 'boss' ? boss.clearNear(pos, 10) : 0);
+    if (state === 'boss') boss.hurt(1);
+    const n = targets.length + (state === 'boss' ? 1 : 0);
+    hud.banner(`🕸️ WEBBED ${n}!${caught ? ` ${caught} shots caught` : ''}`, 1.3);
+    if (!n && !caught) cooldown[id] = 1; // nothing there: try again soon
   }
   if (id === 'scribble') {
     const targets = enemies.targets(pos, 3);
@@ -839,6 +877,7 @@ function update(dt, time) {
   doubleT = Math.max(0, doubleT - dt);
   updateNewAbilities(dt, time);
   updateMissiles(dt);
+  updateWebs(dt);
   if (state === 'flying' || state === 'boss') {
     updatePetPerks(dt);
     if (stats.repairEvery && health < stats.maxHealth) {
