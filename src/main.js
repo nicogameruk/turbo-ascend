@@ -213,7 +213,8 @@ function updateWebs(dt) {
 
 const toppers = createToppers(car.topperSlot);
 const pet = createPet(scene);
-const petIs = (id) => progress.equipped.pet === id;
+const petIs = (id) => progress.equipped.pet === id || (progress.equipped.pet === 'omni' && id !== 'ufo' && id !== 'dragon');
+let omniTimer = 0; // Omni Spirit: casts a random ability every few seconds
 let petTimer = 0; // for pets that do something every few seconds
 let petUsed = false; // for once-a-level pet perks
 
@@ -327,7 +328,13 @@ let level = getLevel(progress.level);
 // Car stats: upgrades, then the body shape's bonus, then the pet's.
 const makeStats = () => {
   const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
-  if (progress.equipped.pet === 'toucan') s.refill *= 1.25;
+  if (progress.equipped.pet === 'toucan' || progress.equipped.pet === 'omni') s.refill *= 1.25;
+  if (progress.equipped.pet === 'omni') {
+    // Every passive power, even before you unlock them
+    s.maxHealth += 1;
+    s.magnet = Math.max(s.magnet, 9);
+    s.fuelDrain *= 0.77;
+  }
   return s;
 };
 let stats = makeStats();
@@ -453,6 +460,7 @@ function startRun() {
   clearMissiles();
   petTimer = 0;
   petUsed = false;
+  omniTimer = 0;
   pet.snap(car.group.position);
   resetAbilityTimers();
   for (const id in cooldown) cooldown[id] = 0;
@@ -586,6 +594,17 @@ function useAbility() {
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
   if ((id === 'repair' || id === 'dreamheal') && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
   cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult;
+  castAbility(id);
+}
+
+// The pet casting doesn't touch your own ability's recharge.
+function petCast(id) {
+  const saved = cooldown[id] ?? 0;
+  castAbility(id);
+  cooldown[id] = saved;
+}
+
+function castAbility(id) {
   const dur = abilityDuration(id, progress.best) * stats.durationMult;
   const pos = car.group.position;
   audio.play(ABILITY_SOUNDS[id] ?? id);
@@ -987,6 +1006,19 @@ function update(dt, time) {
 // Pets that do something every few seconds.
 function updatePetPerks(dt) {
   petTimer += dt;
+  if (progress.equipped.pet === 'omni') {
+    omniTimer += dt;
+    if (omniTimer > 4) {
+      omniTimer = 0;
+      const full = health >= stats.maxHealth;
+      const pool = Object.keys(ABILITIES).filter((id) => ABILITIES[id].active && !(full && (id === 'repair' || id === 'dreamheal')));
+      const id = pool[Math.floor(Math.random() * pool.length)];
+      petCast(id);
+      booms.spawn(pet.mouth, 0xb08aff, 0.8);
+      pet.flash();
+      hud.banner(`🌌 Omni Spirit used ${ABILITIES[id].name}!`, 1.4);
+    }
+  }
   // Once charged (6 s), the UFO zaps the next shots that come close.
   if (petIs('ufo') && petTimer > 6) {
     const n = shots.clearNear(car.group.position, 10) + (state === 'boss' ? boss.clearNear(car.group.position, 10) : 0);

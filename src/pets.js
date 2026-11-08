@@ -113,6 +113,23 @@ const BUILDERS = {
     a.wings = wingPair(g, std(0xff7a3a, 0.6, 0, { side: THREE.DoubleSide }), 0.12, 0.05, 0.45);
     a.mouth = new THREE.Vector3(0, 0.14, -0.6);
   },
+  // Omni Spirit: a glowing cosmic orb with a ring of gems, one for each kind of power.
+  omni(g, a) {
+    part(g, new THREE.SphereGeometry(0.28, 24, 16), std(0x2a1a6a, 0.2, 0.3, { emissive: 0x6a3aff, emissiveIntensity: 1.2 }));
+    part(g, new THREE.SphereGeometry(0.5, 18, 12), glow(0xb08aff, 0.2));
+    eyes(g, 0.05, -0.24, 0.09, 0.045);
+    const ring = new THREE.Group();
+    const colors = [0xff3a3a, 0xff9a1a, 0xffe03a, 0x3aff6a, 0x3ad8ff, 0x3a6aff, 0xc83aff, 0xffffff];
+    colors.forEach((c, i) => {
+      const ang = (i / colors.length) * Math.PI * 2;
+      const gem = part(ring, new THREE.OctahedronGeometry(0.09), std(c, 0.15, 0.2, { emissive: c, emissiveIntensity: 1.1 }), Math.cos(ang) * 0.6, 0, Math.sin(ang) * 0.6);
+      gem.castShadow = false;
+    });
+    ring.rotation.x = 0.35;
+    g.add(ring);
+    a.spin = ring; // the gems keep circling
+    a.float = true;
+  },
   star(g, a) {
     const s = new THREE.Shape();
     for (let i = 0; i < 10; i++) {
