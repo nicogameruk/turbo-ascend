@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildShapes } from './car-shapes.js';
 
 // Area the car can move in (it stays at z = 0; the world moves past it).
 export const BOUNDS = { x: 6, yMin: 0.5, yMax: 7.5 };
@@ -58,19 +59,29 @@ export function createCar() {
   };
   const box = (w, h, d, mat, x, y, z) => add(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
 
-  box(2.3, 0.45, 4.2, paint, 0, 0, 0); // chassis
-  box(2.0, 0.28, 1.1, paint, 0, -0.06, -2.55); // nose
-  box(1.5, 0.45, 1.7, glass, 0, 0.44, 0.3); // cockpit
-  box(2.5, 0.08, 0.5, dark, 0, 0.66, 2.0); // spoiler
-  box(0.12, 0.4, 0.12, dark, -0.8, 0.42, 2.0);
-  box(0.12, 0.4, 0.12, dark, 0.8, 0.42, 2.0);
+  // The roadster shell (the default body shape).
+  const roadsterParts = [
+    box(2.3, 0.45, 4.2, paint, 0, 0, 0), // chassis
+    box(2.0, 0.28, 1.1, paint, 0, -0.06, -2.55), // nose
+    box(1.5, 0.45, 1.7, glass, 0, 0.44, 0.3), // cockpit
+    box(2.5, 0.08, 0.5, dark, 0, 0.66, 2.0), // spoiler
+    box(0.12, 0.4, 0.12, dark, -0.8, 0.42, 2.0),
+    box(0.12, 0.4, 0.12, dark, 0.8, 0.42, 2.0),
+  ];
   const mudSplats = [
     box(0.7, 0.04, 0.9, mud, -0.5, 0.24, -1.3),
     box(0.5, 0.04, 0.5, mud, 0.65, 0.24, 1.1),
     box(0.4, 0.05, 0.3, mud, 0.3, -0.03, -3.05),
   ];
-  box(0.45, 0.12, 0.04, headlight, -0.7, 0, -3.11);
-  box(0.45, 0.12, 0.04, headlight, 0.7, 0, -3.11);
+  roadsterParts.push(box(0.45, 0.12, 0.04, headlight, -0.7, 0, -3.11), box(0.45, 0.12, 0.04, headlight, 0.7, 0, -3.11));
+
+  // Other body shapes from the shop (see car-shapes.js).
+  const shapes = buildShapes(body, { paint, dark, glass, headlight });
+  shapes.roadster = { group: new THREE.Group(), roofY: 0.67, compact: false };
+  body.add(shapes.roadster.group);
+  roadsterParts.forEach((m) => shapes.roadster.group.add(m));
+  let shape = shapes.roadster;
+  let lastLevels = null;
 
   // Chunky wheels folded flat into hover-thrusters, with glowing undersides.
   const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.35, 24);
@@ -305,7 +316,8 @@ export function createCar() {
   let rainbowFlame = false;
 
   const showParts = (n) => {
-    const list = TIERS[n]?.parts ?? [n, ...(n === 6 ? [5] : [])];
+    let list = TIERS[n]?.parts ?? [n, ...(n === 6 ? [5] : [])];
+    if (shape.compact) list = list.filter((k) => [7, 9, 12, 14].includes(k)); // wings, halo, ring and glow still fit
     for (const [k, g] of Object.entries(tierParts)) g.visible = list.includes(Number(k));
   };
   let flickerAt = -1;
@@ -365,6 +377,7 @@ export function createCar() {
 
     // Show the parts for each upgrade level.
     applyUpgrades(levels) {
+      lastLevels = levels;
       const tankScale = 1 + 0.15 * Math.max(0, levels.tank - 1);
       for (const t of tanks) {
         t.visible = levels.tank > 0;
@@ -374,6 +387,7 @@ export function createCar() {
       armor1.forEach((m) => { m.visible = levels.armor >= 1; });
       armor2.forEach((m) => { m.visible = levels.armor >= 2; });
       armor3.forEach((m) => { m.visible = levels.armor >= 3; });
+      if (shape.compact) [...tanks, ...armor1, ...armor2, ...armor3].forEach((m) => { m.visible = false; });
       const discScale = 1 + 0.25 * levels.thrusters;
       glowDiscs.forEach((d) => d.scale.set(discScale, 1, discScale));
       thrusterRings.forEach((r) => { r.visible = levels.thrusters >= 2; });
@@ -447,7 +461,7 @@ export function createCar() {
       if (paintItem?.glow) { paint.emissive.setHex(paintItem.glow); paint.emissiveIntensity = 0.8; }
       if (paintItem) { paint.transparent = false; paint.opacity = 1; }
       paint.needsUpdate = true;
-      mudSplats.forEach((m) => { m.visible = tier === 1; });
+      mudSplats.forEach((m) => { m.visible = tier === 1 && !shape.compact; });
       showParts(tier);
     },
 
@@ -462,6 +476,16 @@ export function createCar() {
     // Something for chrome paints to reflect.
     setEnvironment(tex) {
       envMap = tex;
+      car.setTier(tier);
+    },
+
+    // Shop body shape: 'roadster', 'muscle', 'wedge', 'formula', 'truck', 'van', 'bubble', 'rocket', 'saucer', 'hotdog'.
+    setShape(id) {
+      shape.group.visible = false;
+      shape = shapes[id] ?? shapes.roadster;
+      shape.group.visible = true;
+      car.topperSlot.position.y = shape.roofY;
+      if (lastLevels) car.applyUpgrades(lastLevels);
       car.setTier(tier);
     },
 

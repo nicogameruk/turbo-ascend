@@ -192,6 +192,7 @@ function addRunPoints(won) {
 
 // Shop looks: paint, trail, flame colour, glow, hat and pet.
 function applyLooks() {
+  car.setShape(progress.equipped.body);
   car.setPaint(findItem('paint', progress.equipped.paint));
   const glowItem = findItem('glow', progress.equipped.glow);
   car.setGlow(glowItem.id === 'upgrade' ? undefined : glowItem.color);

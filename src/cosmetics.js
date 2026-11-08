@@ -1,6 +1,19 @@
 // Things you buy with coins in the garage shop.
 // The first item of each kind is free and owned from the start.
 export const SHOP = {
+  // Car body shapes (looks only — every shape flies the same).
+  body: [
+    { id: 'roadster', name: 'Roadster', cost: 0, icon: '🚗', desc: 'The classic' },
+    { id: 'muscle', name: 'Muscle Car', cost: 60, icon: '💪', desc: 'Big hood scoop and a huge wing' },
+    { id: 'van', name: 'Delivery Van', cost: 70, icon: '🚐', desc: 'Tall, boxy and proud of it' },
+    { id: 'bubble', name: 'Bubble Car', cost: 70, icon: '🫧', desc: 'Tiny, round and adorable' },
+    { id: 'wedge', name: 'Hyper Wedge', cost: 90, icon: '🔺', desc: 'Low, sharp supercar' },
+    { id: 'truck', name: 'Monster Pickup', cost: 100, icon: '🛻', desc: 'A cab, a truck bed and roof lights' },
+    { id: 'formula', name: 'Formula Racer', cost: 120, icon: '🏎️', desc: 'Open cockpit and big wings' },
+    { id: 'hotdog', name: 'Hot Dog', cost: 120, icon: '🌭', desc: 'With mustard. Obviously.' },
+    { id: 'rocket', name: 'Rocket', cost: 150, icon: '🚀', desc: 'Nose cone and tail fins' },
+    { id: 'saucer', name: 'Flying Saucer', cost: 180, icon: '🛸', desc: 'Take me to your leader' },
+  ],
   paint: [
     { id: 'level', name: 'Level look', cost: 0 },
     { id: 'red', name: 'Racing Red', cost: 30, color: 0xd62828 },
@@ -84,6 +97,7 @@ export const SHOP = {
 };
 
 export const SHOP_TABS = [
+  { kind: 'body', label: 'Body' },
   { kind: 'paint', label: 'Paint' },
   { kind: 'trail', label: 'Trail' },
   { kind: 'glow', label: 'Glow' },
