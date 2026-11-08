@@ -1,18 +1,18 @@
 // Things you buy with coins in the garage shop.
 // The first item of each kind is free and owned from the start.
 export const SHOP = {
-  // Car body shapes (looks only — every shape flies the same).
+  // Car body shapes. Each one also gives a small bonus (see applyBodyPerk below).
   body: [
-    { id: 'roadster', name: 'Roadster', cost: 0, icon: '🚗', desc: 'The classic' },
-    { id: 'muscle', name: 'Muscle Car', cost: 60, icon: '💪', desc: 'Big hood scoop and a huge wing' },
-    { id: 'van', name: 'Delivery Van', cost: 70, icon: '🚐', desc: 'Tall, boxy and proud of it' },
-    { id: 'bubble', name: 'Bubble Car', cost: 70, icon: '🫧', desc: 'Tiny, round and adorable' },
-    { id: 'wedge', name: 'Hyper Wedge', cost: 90, icon: '🔺', desc: 'Low, sharp supercar' },
-    { id: 'truck', name: 'Monster Pickup', cost: 100, icon: '🛻', desc: 'A cab, a truck bed and roof lights' },
-    { id: 'formula', name: 'Formula Racer', cost: 120, icon: '🏎️', desc: 'Open cockpit and big wings' },
-    { id: 'hotdog', name: 'Hot Dog', cost: 120, icon: '🌭', desc: 'With mustard. Obviously.' },
-    { id: 'rocket', name: 'Rocket', cost: 150, icon: '🚀', desc: 'Nose cone and tail fins' },
-    { id: 'saucer', name: 'Flying Saucer', cost: 180, icon: '🛸', desc: 'Take me to your leader' },
+    { id: 'roadster', name: 'Roadster', cost: 0, icon: '🚗', desc: 'Turbo fuel refills 15% faster' },
+    { id: 'muscle', name: 'Muscle Car', cost: 60, icon: '💪', desc: '10% faster turbo' },
+    { id: 'van', name: 'Delivery Van', cost: 70, icon: '🚐', desc: '+15% material when you beat a level' },
+    { id: 'bubble', name: 'Bubble Car', cost: 70, icon: '🫧', desc: '+1 heart' },
+    { id: 'wedge', name: 'Hyper Wedge', cost: 90, icon: '🔺', desc: 'Steers 15% faster' },
+    { id: 'truck', name: 'Monster Pickup', cost: 100, icon: '🛻', desc: '+1 second of safety after you get hit' },
+    { id: 'formula', name: 'Formula Racer', cost: 120, icon: '🏎️', desc: 'Always cruises a bit faster, so chasers catch you slower' },
+    { id: 'hotdog', name: 'Hot Dog', cost: 120, icon: '🌭', desc: '+25% coins (with mustard)' },
+    { id: 'rocket', name: 'Rocket', cost: 150, icon: '🚀', desc: 'Turbo lasts 30% longer' },
+    { id: 'saucer', name: 'Flying Saucer', cost: 180, icon: '🛸', desc: 'Tractor beam pulls material in from further away' },
   ],
   paint: [
     { id: 'level', name: 'Level look', cost: 0 },
@@ -107,3 +107,21 @@ export const SHOP_TABS = [
 ];
 
 export const findItem = (kind, id) => SHOP[kind].find((i) => i.id === id) ?? SHOP[kind][0];
+
+// The bonus your car's body shape gives (changes the stats from getStats).
+export function applyBodyPerk(stats, bodyId) {
+  switch (bodyId) {
+    case 'roadster': stats.refill *= 1.15; break;
+    case 'muscle': stats.boostSpeed *= 1.1; break;
+    case 'van': stats.matMult *= 1.15; break;
+    case 'bubble': stats.maxHealth += 1; break;
+    case 'wedge': stats.steerSpeed *= 1.15; break;
+    case 'truck': stats.invuln += 1; break;
+    case 'formula': stats.cruise += 5; break;
+    case 'hotdog': stats.coinMult *= 1.25; break;
+    case 'rocket': stats.fuelDrain /= 1.3; break;
+    case 'saucer': stats.magnet += 6; break;
+    default: break;
+  }
+  return stats;
+}

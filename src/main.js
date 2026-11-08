@@ -16,7 +16,7 @@ import { createGarage, formatTime } from './garage.js';
 import { createMenus } from './menu.js';
 import { createAudio } from './audio.js';
 import { loadSave, writeSave, clearSave } from './save.js';
-import { findItem } from './cosmetics.js';
+import { findItem, applyBodyPerk } from './cosmetics.js';
 import { getLevel, bossBonus, runCoins, LAST_LEVEL, LEVEL_THEMES } from './levels.js';
 import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from './abilities.js';
 import { createTouchControls } from './touch.js';
@@ -256,7 +256,7 @@ sendPoints(progress, save); // anything left over from last time
 let state = 'menu';
 let pausedFrom = 'flying';
 let level = getLevel(progress.level);
-let stats = getStats(progress.levels, progress.best);
+let stats = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let repairT = 0; // Auto Repair timer
@@ -344,7 +344,7 @@ function showTitle() {
 function startRun() {
   progress.started = true;
   level = getLevel(progress.level);
-  stats = getStats(progress.levels, progress.best);
+  stats = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
   setScene(level);
   boss.setPlayer(stats);
   boss.configure(level);
