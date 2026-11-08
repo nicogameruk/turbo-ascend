@@ -157,7 +157,7 @@ export function createHud() {
       if (s.state === 'ending' && s.ending) {
         html = `<span class="ending">YOU'RE A LEGEND!</span>
           ${s.playerName ? `<b style="font-size:28px;color:#ffcf8a">${s.playerName.replace(/[<>&]/g, '')}</b>` : ''}
-          <small>You saved the universe, got the job, AND drew your way out of Doodle Land. What a ride!<br>
+          <small>You saved the universe, got the job, drew your way out of Doodle Land, AND beat the Impossible. What a ride!<br>
           ${s.ending.pay} · ${s.ending.time}<br>
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
           Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.</small>`;

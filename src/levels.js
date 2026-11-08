@@ -355,9 +355,10 @@ export const LEVELS = [
   },
   // ---- The Impossible level: one heart, every enemy, every hazard ----
   {
-    n: 27, name: 'Impossible', material: 'Impossible Shards', goal: 100, space: true, landmark: 'blackhole',
+    n: 27, name: 'Impossible', material: 'Impossible Shards', goal: 80, space: true, landmark: 'blackhole',
     oneHeart: true, // only 1 heart here, whatever your upgrades
     noPets: true, // your pet stays home: no pet powers
+    noBoss: true, // collect all the shards and the game is finished
     cooldownMult: 2, // abilities take twice as long to recharge
     sky: ['#000000', '#2a0006'], sky2: ['#0a0000', '#5a0010'], fog: 0x14000a, hemi: [0xffd8d8, 0x14000a],
     ground: null,

@@ -992,6 +992,7 @@ function update(dt, time) {
       shots.update(edt, car.group.position, damage);
     }
     if (state !== 'flying') return;
+    if (runMat >= goal && level.noBoss) { win(); return; } // no boss: the level (and the game) is done
     if (runMat >= goal && !portal.active) {
       portal.open();
       audio.play('portal');
