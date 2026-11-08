@@ -132,7 +132,7 @@ const SHAPES = {
 
   // A detailed classic Grand Prix car (an original design, in your own paint colour).
   // Open wheels, pointed nose, wings with endplates, sidepods and an airbox.
-  gp: { roofY: 0.22, roofZ: -0.32, compact: true, build(b) { // hat/helmet sits in the cockpit
+  gp: { roofY: 0.22, roofZ: -0.32, compact: true, ownWheels: true, build(b) { // hat/helmet sits in the cockpit
     const carbon = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.35, metalness: 0.4 });
     const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f4f6, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.1 });
     const rubber = new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.9 });
@@ -249,7 +249,7 @@ export function buildShapes(parent, mats) {
     group.visible = false;
     def.build(builder(group, mats));
     parent.add(group);
-    out[id] = { group, roofY: def.roofY, roofZ: def.roofZ, compact: !!def.compact };
+    out[id] = { group, roofY: def.roofY, roofZ: def.roofZ, compact: !!def.compact, ownWheels: !!def.ownWheels };
   }
   return out;
 }

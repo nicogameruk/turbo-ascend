@@ -151,13 +151,15 @@ export function createCar() {
   const glowDiscs = [];
   const thrusterRings = [];
   const rimGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.37, 24);
+  const baseWheels = []; // hidden on body shapes that bring their own wheels
   const spokeGeo = roundBox(0.56, 0.38, 0.07, 0.02);
   for (const x of [-1.3, 1.3]) {
     for (const z of [-1.45, 1.45]) {
       const tyre = add(wheelGeo, rubber, x, -0.15, z);
+      baseWheels.push(tyre);
       tyre.geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.35, 32);
-      add(rimGeo, chrome, x, -0.15, z);
-      for (let k = 0; k < 3; k++) add(spokeGeo, chrome, x, -0.15, z).rotation.y = (k / 3) * Math.PI;
+      baseWheels.push(add(rimGeo, chrome, x, -0.15, z));
+      for (let k = 0; k < 3; k++) { const sp = add(spokeGeo, chrome, x, -0.15, z); sp.rotation.y = (k / 3) * Math.PI; baseWheels.push(sp); }
       const disc = add(glowGeo, glow, x, -0.34, z);
       disc.castShadow = false;
       glowDiscs.push(disc);
@@ -551,6 +553,7 @@ export function createCar() {
       shape.group.visible = true;
       car.topperSlot.position.y = shape.roofY;
       car.topperSlot.position.z = shape.roofZ ?? 0.3;
+      baseWheels.forEach((m) => { m.visible = !shape.ownWheels; }); // keep only the hover glow underneath
       if (lastLevels) car.applyUpgrades(lastLevels);
       car.setTier(tier);
     },
