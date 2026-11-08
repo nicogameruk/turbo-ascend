@@ -162,7 +162,7 @@ export function createHud() {
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
           Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.</small>`;
       }
-      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins (upgrades are kept)</small>`;
+      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins${s.runPoints ? ` and ${s.runPoints} 🏆 points` : ''} (upgrades are kept)</small>`;
       if (html !== lastOverlay) {
         overlay.innerHTML = html;
         overlay.style.display = html ? 'flex' : 'none';

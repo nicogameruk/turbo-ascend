@@ -22,6 +22,7 @@ import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from 
 import { createTouchControls } from './touch.js';
 import { createToppers } from './toppers.js';
 import { createPet } from './pets.js';
+import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView } from './leaderboard.js';
 import { BOUNDS } from './car.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -175,6 +176,19 @@ shots.spawn = (...args) => {
 };
 
 const save = () => writeSave(progress);
+// Every named racer needs a leaderboard id (old saves get one now).
+if (progress.name && !progress.playerId) { progress.playerId = newPlayerId(); writeSave(progress); }
+const boardMenu = createBoardView(document.getElementById('lb-menu'), () => progress, (n) => audio.play(n));
+const boardGarage = createBoardView(document.getElementById('lb-garage'), () => progress, (n) => audio.play(n));
+let lastRunPoints = 0;
+// A finished run's points go to the leaderboard (they wait offline if needed).
+function addRunPoints(won) {
+  lastRunPoints = progress.name ? runPoints(level, meters, runMat, won) : 0;
+  if (!lastRunPoints) return;
+  progress.pendingPoints += lastRunPoints;
+  save();
+  sendPoints(progress, save);
+}
 
 // Shop looks: paint, trail, flame colour, glow, hat and pet.
 function applyLooks() {
@@ -195,18 +209,21 @@ const garage = createGarage(progress, {
   onPickLevel: (n) => { progress.level = n; save(); },
   onShop: () => { applyLooks(); save(); },
   onPreviewHorn: (id) => audio.horn(id),
+  onLeaders: () => boardGarage.render(),
   sound: (n) => audio.play(n),
 });
 
 const menus = createMenus({
   onContinue: (name) => {
-    if (name) { progress.name = name; save(); }
+    if (name) { progress.name = name; progress.playerId = newPlayerId(); save(); }
     menus.hide();
     openGarage();
   },
   onNewGame: (name) => {
     const settings = progress.settings;
-    Object.assign(progress, createProgress(), { settings, started: true, name });
+    // The old racer's leaderboard scores are dropped; the new name starts from zero.
+    forgetPlayer(progress.playerId);
+    Object.assign(progress, createProgress(), { settings, started: true, name, playerId: newPlayerId() });
     save();
     menus.hide();
     car.applyUpgrades(progress.levels);
@@ -218,6 +235,7 @@ const menus = createMenus({
   onQuit: () => showTitle(),
   onSettings: (s) => { progress.settings = s; audio.setSettings(s); touch.setEnabled(s.controls === 'touch'); save(); },
   onResetSave: () => {
+    forgetPlayer(progress.playerId);
     clearSave();
     const settings = progress.settings;
     Object.assign(progress, createProgress(), { settings });
@@ -225,9 +243,11 @@ const menus = createMenus({
     applyLooks();
     showTitle();
   },
+  onLeaders: () => boardMenu.render(),
   sound: (n) => audio.play(n),
 });
 menus.setSettings(progress.settings);
+sendPoints(progress, save); // anything left over from last time
 
 // States: 'menu' (title), 'flying' -> (portal) -> 'boss' -> 'victory' -> 'garage' -> 'flying' ...
 // plus 'paused' and 'over'.
@@ -432,6 +452,7 @@ function gameOver() {
   booms.spawn(car.group.position, 0xff6a2a, 1.4);
   hud.banner('', 0);
   coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
+  addRunPoints(false);
   progress.coins += coinsEarned;
   audio.setEngine(false);
   audio.play('boom');
@@ -607,6 +628,7 @@ function win() {
   const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
   coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
+  addRunPoints(true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
   if (firstClear) {
@@ -625,7 +647,7 @@ function win() {
   save();
 
   const time = `Time ${formatTime(runTime)}${record ? ' — NEW RECORD!' : ''}`;
-  const pay = `+${earned} materials, +${coinsEarned} coins`;
+  const pay = `+${earned} materials, +${coinsEarned} coins${lastRunPoints ? `, +${lastRunPoints} 🏆` : ''}`;
   if (level.n === LAST_LEVEL) {
     state = 'ending';
     car.group.visible = true;
@@ -962,6 +984,7 @@ function frame() {
     coinsEarned,
     ending,
     playerName: progress.name,
+    runPoints: lastRunPoints,
     warning: enemies.warning,
     bossName: boss.name,
     bossHp: boss.hp,

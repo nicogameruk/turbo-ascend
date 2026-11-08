@@ -7,7 +7,7 @@ const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 export const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 
 // Garage between levels: upgrades (materials), the shop (coins) and records.
-export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, onPreviewHorn, sound }) {
+export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, onPreviewHorn, onLeaders, sound }) {
   const panel = document.getElementById('garage');
   const $ = (id) => document.getElementById(id);
   const go = $('garage-go');
@@ -169,6 +169,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
     if (tab === 'upgrades') renderUpgrades();
     if (tab === 'shop') renderShop();
     if (tab === 'records') renderRecords();
+    if (tab === 'leaders') onLeaders?.();
     const chosen = LEVELS[progress.level - 1];
     go.textContent = `Fly Level ${chosen.n}: ${chosen.name} (Enter)`;
   }
@@ -185,7 +186,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
       if (input.wasPressed('ArrowLeft') || input.wasPressed('KeyA')) pick(progress.level - 1);
       if (input.wasPressed('ArrowRight') || input.wasPressed('KeyD')) pick(progress.level + 1);
       if (input.wasPressed('Tab')) {
-        const order = ['upgrades', 'shop', 'records'];
+        const order = ['upgrades', 'shop', 'records', 'leaders'];
         tab = order[(order.indexOf(tab) + 1) % order.length];
         sound('ui');
         render();

@@ -155,6 +155,20 @@
       .menu button.reroll.spin { transform: rotate(360deg); }
       #player-name { font-size: 15px; font-weight: 800; color: #fff; }
       #garage-name { margin-top: -6px; font-size: 15px; color: #ffcf8a; font-weight: 700; }
+      /* Leaderboard */
+      .lb { width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+      .lb-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .lb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 46vh; overflow-y: auto; }
+      .lb-list li { display: grid; grid-template-columns: 42px 1fr auto; gap: 8px; align-items: center; padding: 5px 10px; border-radius: 8px; background: rgba(255,255,255,.06); font-size: 14px; }
+      .lb-list li:nth-child(1) .pos { color: #ffd040; } .lb-list li:nth-child(2) .pos { color: #d8e0ea; } .lb-list li:nth-child(3) .pos { color: #ff9a4a; }
+      .lb-list li.me { background: rgba(141,255,154,.18); border: 2px solid #8dff9a; }
+      .lb-list li.empty { display: block; opacity: .7; }
+      .lb-list .pos { font-weight: 900; opacity: .9; }
+      .lb-list .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .lb-me { border-top: 2px dashed rgba(255,255,255,.25); padding-top: 6px; }
+      .lb-you { margin: 4px 0 0; font-size: 15px; }
+      .lb .note { margin: 0; font-size: 12px; opacity: .7; }
+      .tabs .tab { font-size: 14px; }
       .menu select { font: inherit; padding: 4px 8px; border-radius: 6px; }
       .keys { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
       .keys td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
@@ -214,6 +228,7 @@
           <button class="tab on" data-tab="upgrades">Upgrades</button>
           <button class="tab" data-tab="shop">Shop</button>
           <button class="tab" data-tab="records">Records</button>
+          <button class="tab" data-tab="leaders">Ranks</button>
         </div>
         <div class="tab-body" data-tab="upgrades">
           <div id="upgrade-kinds"></div>
@@ -228,6 +243,10 @@
           <div id="shop-kinds"></div>
           <div id="shop-list"></div>
           <p class="note">Spend coins on looks. Coins come from distance flown and levels beaten.</p>
+        </div>
+        <div class="tab-body" data-tab="leaders">
+          <h2>🏆 LEADERBOARD</h2>
+          <div id="lb-garage" class="lb"></div>
         </div>
         <div class="tab-body" data-tab="records">
           <h2>BEST CLEAR TIMES</h2>
@@ -252,8 +271,14 @@
         <p class="touch-note">Touch controls: Settings → Controls.</p>
         <button class="primary" data-action="continue" id="btn-continue" hidden>Continue</button>
         <button data-action="newgame">New Game</button>
+        <button data-action="leaders">🏆 Leaderboard</button>
         <button data-action="controls">Controls</button>
         <button data-action="settings">Settings</button>
+      </div>
+      <div class="menu" id="menu-leaders">
+        <h2>🏆 LEADERBOARD</h2>
+        <div id="lb-menu" class="lb"></div>
+        <button class="primary" data-action="back">Back</button>
       </div>
       <div class="menu" id="menu-name">
         <h2>YOUR RACER NAME</h2>

@@ -3,8 +3,8 @@ import { randomName } from './names.js';
 
 const $ = (id) => document.getElementById(id);
 
-export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, sound }) {
-  const panels = { title: $('menu-title'), name: $('menu-name'), pause: $('menu-pause'), settings: $('menu-settings'), controls: $('menu-controls') };
+export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, onLeaders, sound }) {
+  const panels = { title: $('menu-title'), name: $('menu-name'), leaders: $('menu-leaders'), pause: $('menu-pause'), settings: $('menu-settings'), controls: $('menu-controls') };
   const root = $('menus');
   let current = null;
   let back = null; // panel to return to from settings/controls
@@ -48,6 +48,7 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
     quit: () => onQuit(),
     settings: () => { back = current; show('settings'); },
     controls: () => { back = current; show('controls'); },
+    leaders: () => { back = current; show('leaders'); onLeaders?.(); },
     back: () => show(back ?? 'title'),
     resetsave: () => {
       if (confirm('Delete all saved progress, coins and records? This cannot be undone.')) onResetSave();
@@ -102,7 +103,7 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
         const first = [...panels[current].querySelectorAll('button[data-action]')].find((b) => !b.hidden);
         first?.click();
       } else if (input.wasPressed('Escape')) {
-        if (current === 'settings' || current === 'controls') actions.back();
+        if (current === 'settings' || current === 'controls' || current === 'leaders') actions.back();
         else if (current === 'pause') onResume();
       }
     },
