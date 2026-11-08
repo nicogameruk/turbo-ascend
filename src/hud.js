@@ -21,6 +21,7 @@ export function createHud() {
   const warning = $('warning');
   const overlay = $('overlay');
   const help = $('help');
+  const actions = $('actions');
   const ability = $('ability');
   const abilityName = $('ability-name');
   const abilityFill = $('ability-fill');
@@ -40,6 +41,19 @@ export function createHud() {
       banner.textContent = text;
       bannerTime = seconds;
       banner.style.opacity = text ? '1' : '0';
+    },
+
+    // Buttons under a message: [{ label, onClick }], or [] to hide them.
+    setActions(list) {
+      actions.innerHTML = '';
+      for (const { label, onClick } of list) {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.addEventListener('mousedown', (e) => e.preventDefault());
+        b.addEventListener('click', onClick);
+        actions.append(b);
+      }
+      actions.style.display = list.length ? 'flex' : 'none';
     },
 
     // Show the controls line for a few seconds.
@@ -99,7 +113,7 @@ export function createHud() {
         setText(abilityName, a.name);
         abilityFill.style.width = `${(1 - a.cooldownLeft / a.cooldown) * 100}%`;
         ability.classList.toggle('ready', a.cooldownLeft <= 0);
-        setText(abilityHint, a.cooldownLeft > 0 ? `${Math.ceil(a.cooldownLeft)} s` : a.count > 1 ? `SHIFT · Q or 1–${a.count} to switch` : 'SHIFT');
+        setText(abilityHint, a.cooldownLeft > 0 ? `${Math.ceil(a.cooldownLeft)} s` : 'READY · press B');
       }
 
       let html = '';
@@ -108,10 +122,9 @@ export function createHud() {
           <small>The Universe Eater is gone. From a dented dirt car to a glowing star — you did it.<br>
           ${s.ending.pay} · ${s.ending.time}<br>
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
-          Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.<br>
-          Press Enter for the garage</small>`;
+          Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.</small>`;
       }
-      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins<br>R: try again · E: garage · Esc: menu (upgrades are kept)</small>`;
+      if (s.state === 'over') html = `GAME OVER<small>You flew ${Math.floor(s.meters)} m and earned ${s.coinsEarned} coins (upgrades are kept)</small>`;
       if (html !== lastOverlay) {
         overlay.innerHTML = html;
         overlay.style.display = html ? 'flex' : 'none';

@@ -12,11 +12,14 @@ Built with [three.js](https://threejs.org) and [Vite](https://vite.dev). All mod
 |---|---|
 | W A S D / Arrows | Steer |
 | Space | Turbo boost (uses fuel) |
-| Shift | Use ability |
-| Q or 1–9 | Switch ability |
-| H | Horn |
+| B | Use your ability |
+| M | Horn |
 | E | Garage (after a level) |
 | Esc | Pause |
+
+You pick which ability to take into each round in the garage: **Shop → Ability**. Level rewards are free there, and extra abilities (Nitro, Repair Kit, Double Up, Homing Missiles) can be bought with coins.
+
+**Phones and tablets:** turn on **Settings → Controls → Touch screen**. Drag on the left side of the screen to steer, and use the BOOST, ABILITY, horn and pause buttons on the right.
 
 ## Run it on your computer
 

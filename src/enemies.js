@@ -871,6 +871,26 @@ export function createEnemies(scene, booms) {
       return n;
     },
 
+    // Homing Missiles: the n nearest enemies that can be destroyed.
+    targets(carPos, n) {
+      return allSlots()
+        .filter((sl) => sl.alive && sl.enemy.blastable && sl.enemy.group.position.z < carPos.z + 5)
+        .sort((x, y) => x.enemy.group.position.distanceTo(carPos) - y.enemy.group.position.distanceTo(carPos))
+        .slice(0, n)
+        .map((slot) => {
+          const enemy = slot.enemy;
+          return {
+            pos: enemy.group.position,
+            get alive() { return slot.alive && slot.enemy === enemy; },
+            destroy() {
+              if (!slot.alive) return;
+              booms.spawn(enemy.group.position, 0xffa040, 1.3);
+              kill(slot);
+            },
+          };
+        });
+    },
+
     // Boss minions: spawn one enemy of a type right away.
     spawn(type, ctx) { take(type, ctx); },
 

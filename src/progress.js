@@ -1,4 +1,4 @@
-import { unlocked } from './abilities.js';
+import { ABILITIES, unlocked, activeAbilities, availableAbilities } from './abilities.js';
 import { SHOP } from './cosmetics.js';
 import { LAST_LEVEL } from './levels.js';
 
@@ -11,7 +11,9 @@ export const UPGRADES = [
   { id: 'booster', name: 'Booster Engine', desc: 'Faster turbo', costs: [10, 20, 36, 52] },
 ];
 
-export const DEFAULT_SETTINGS = { volume: 0.7, music: true, sfx: true };
+// Touch-screen controls by default on phones and tablets.
+const isTouchDevice = () => typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+export const DEFAULT_SETTINGS = { volume: 0.7, music: true, sfx: true, controls: isTouchDevice() ? 'touch' : 'keyboard' };
 
 export function createProgress() {
   return {
@@ -23,6 +25,8 @@ export function createProgress() {
     owned: { paint: ['level'], trail: ['blue'], horn: ['beep'] },
     equipped: { paint: 'level', trail: 'blue', horn: 'beep' },
     records: {}, // level number -> best clear time in seconds
+    ownedAbilities: [], // abilities bought in the shop
+    ability: null, // the equipped active ability (used with B)
     settings: { ...DEFAULT_SETTINGS },
     started: false, // true once a game has been started (shows "Continue")
   };
@@ -47,11 +51,14 @@ export function restoreProgress(progress, saved) {
   for (const [k, v] of Object.entries(saved.records ?? {})) {
     if (Number(k) >= 1 && Number(k) <= LAST_LEVEL && Number.isFinite(v) && v > 0) progress.records[k] = v;
   }
+  progress.ownedAbilities = (saved.ownedAbilities ?? []).filter((id) => ABILITIES[id]?.shop);
+  progress.ability = availableAbilities(progress).includes(saved.ability) ? saved.ability : activeAbilities(progress.best).at(-1) ?? null;
   const s = saved.settings ?? {};
   progress.settings = {
     volume: Number.isFinite(s.volume) ? Math.min(1, Math.max(0, s.volume)) : DEFAULT_SETTINGS.volume,
     music: s.music !== false,
     sfx: s.sfx !== false,
+    controls: s.controls === 'touch' || s.controls === 'keyboard' ? s.controls : DEFAULT_SETTINGS.controls,
   };
   progress.started = !!saved.started;
   return progress;
@@ -80,6 +87,20 @@ export function buyOrEquip(progress, kind, item) {
     progress.owned[kind].push(item.id);
   }
   progress.equipped[kind] = item.id;
+  return true;
+}
+
+// Shop: buy an ability with coins if needed, then equip it.
+export function buyOrEquipAbility(progress, id) {
+  const a = ABILITIES[id];
+  if (!a?.active) return false;
+  if (a.shop && !progress.ownedAbilities.includes(id)) {
+    if (progress.coins < a.cost) return false;
+    progress.coins -= a.cost;
+    progress.ownedAbilities.push(id);
+  }
+  if (!availableAbilities(progress).includes(id)) return false;
+  progress.ability = id;
   return true;
 }
 

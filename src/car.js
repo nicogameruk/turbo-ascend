@@ -365,9 +365,9 @@ export function createCar() {
     },
 
     update(dt, input, time) {
-      let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-      const dy = (input.up ? 1 : 0) - (input.down ? 1 : 0);
-      if (steerMult > 1 && dx === 0 && dy === 0) dx = dashDir; // dash with no key held: keep going sideways
+      let dx = input.moveX;
+      const dy = input.moveY;
+      if (steerMult > 1 && Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) dx = dashDir; // dash with no steering: keep going sideways
       const k = 1 - Math.exp(-(steerMult > 1 ? 20 : 7) * dt);
       velocity.x += (dx * steerSpeed * steerMult - velocity.x) * k;
       velocity.y += (dy * steerSpeed * steerMult - velocity.y) * k;

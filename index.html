@@ -87,6 +87,30 @@
       #fatal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; color: #fff; text-align: center; font-size: 18px; line-height: 1.6; }
       .touch-note { display: none; color: #ffcf8a; font-size: 13px; }
       @media (hover: none) and (pointer: coarse) { .touch-note { display: block; } }
+      /* Buttons under a message (level complete, game over, ending): tap or click. */
+      #actions { position: absolute; left: 50%; top: 64%; transform: translateX(-50%); display: none; gap: 10px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 92vw; pointer-events: auto; z-index: 1; }
+      #actions button { padding: 12px 20px; border-radius: 10px; border: 2px solid rgba(255,255,255,.35); background: rgba(8,12,28,.75); color: #fff; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; }
+      #actions button:first-child { border: 0; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; }
+
+      /* Touch controls */
+      #touch { position: fixed; inset: 0; display: none; pointer-events: none; z-index: 1; user-select: none; -webkit-user-select: none; touch-action: none; }
+      #stick-zone { position: absolute; left: 0; top: 18%; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
+      #stick { position: absolute; left: 110px; top: calc(100% - 120px); width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(255,255,255,.12); border: 3px solid rgba(255,255,255,.5); pointer-events: none; }
+      #stick-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.75); transform: translate(-50%, -50%); }
+      .tbtn { position: absolute; pointer-events: auto; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid rgba(255,255,255,.6); background: rgba(8,12,28,.45); color: #fff; font: 800 13px system-ui, sans-serif; letter-spacing: .05em; overflow: hidden; }
+      .tbtn.down { background: rgba(255,207,138,.45); transform: scale(.94); }
+      #tbtn-boost { right: 24px; bottom: 28px; width: 96px; height: 96px; font-size: 16px; border-color: #ffb347; }
+      #tbtn-ability { right: 132px; bottom: 40px; width: 78px; height: 78px; border-color: #7fd8ff; }
+      #tbtn-ability.ready { border-color: #8dff9a; }
+      #tbtn-ability-fill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(127,216,255,.3); z-index: -1; }
+      #tbtn-ability.ready #tbtn-ability-fill { background: rgba(141,255,154,.3); }
+      #tbtn-ability-name { font-size: 10px; font-weight: 600; max-width: 70px; text-align: center; line-height: 1.1; margin-top: 2px; }
+      #tbtn-horn { right: 40px; bottom: 140px; width: 58px; height: 58px; font-size: 22px; }
+      #tbtn-pause { right: 16px; top: 14px; width: 46px; height: 46px; border-radius: 12px; font-size: 18px; }
+      body.touch-mode #help, body.touch-mode #ability { display: none !important; }
+      body.touch-mode #right { top: 70px; }
+      body.touch-mode #warning { bottom: 190px; }
+
       #menus { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(5,8,20,.55); color: #fff; z-index: 2; }
       .menu { display: none; flex-direction: column; align-items: center; gap: 12px; width: min(380px, 92vw); padding: 28px 24px; border-radius: 16px; background: rgba(8,12,28,.82); box-sizing: border-box; text-align: center; }
       .menu h1 { margin: 0; font-size: clamp(34px, 8vw, 52px); font-weight: 900; letter-spacing: .06em; background: linear-gradient(180deg, #ffe27a, #ff7a18); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -99,6 +123,7 @@
       .menu label { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 15px; }
       .menu input[type=range] { flex: 1; }
       .menu input[type=checkbox] { width: 20px; height: 20px; }
+      .menu select { font: inherit; padding: 4px 8px; border-radius: 6px; }
       .keys { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
       .keys td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
       .keys td:first-child { font-weight: 700; color: #ffcf8a; white-space: nowrap; }
@@ -135,13 +160,14 @@
       </div>
       <div id="banner"></div>
       <div id="warning">ENEMY CLOSING IN</div>
-      <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; Shift: ability (Q to switch) &nbsp;·&nbsp; H: horn &nbsp;·&nbsp; Esc: pause</div>
+      <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; B: ability &nbsp;·&nbsp; M: horn &nbsp;·&nbsp; Esc: pause</div>
       <div id="ability">
         <div id="ability-name"></div>
         <div id="ability-bar"><div id="ability-fill"></div></div>
         <div id="ability-hint"></div>
       </div>
       <div id="overlay"></div>
+      <div id="actions"></div>
       <div id="garage">
         <h1>GARAGE</h1>
         <div class="bank">
@@ -174,11 +200,19 @@
       </div>
     </div>
 
+    <div id="touch">
+      <div id="stick-zone"><div id="stick"><div id="stick-knob"></div></div></div>
+      <div class="tbtn" id="tbtn-boost" data-key="boost">BOOST</div>
+      <div class="tbtn" id="tbtn-ability" data-key="KeyB"><div id="tbtn-ability-fill"></div>ABILITY<span id="tbtn-ability-name"></span></div>
+      <div class="tbtn" id="tbtn-horn" data-key="KeyM">📯</div>
+      <div class="tbtn" id="tbtn-pause" data-key="Escape">❚❚</div>
+    </div>
+
     <div id="menus">
       <div class="menu" id="menu-title">
         <h1>TURBO ASCEND</h1>
         <p>From a dented dirt car to a cosmic machine.</p>
-        <p class="touch-note">This game is played with a keyboard.</p>
+        <p class="touch-note">Touch controls: Settings → Controls.</p>
         <button class="primary" data-action="continue" id="btn-continue" hidden>Continue</button>
         <button data-action="newgame">New Game</button>
         <button data-action="controls">Controls</button>
@@ -197,6 +231,12 @@
         <label>Volume <input type="range" id="set-volume" min="0" max="100" value="70" /></label>
         <label>Music <input type="checkbox" id="set-music" checked /></label>
         <label>Sound effects <input type="checkbox" id="set-sfx" checked /></label>
+        <label>Controls
+          <select id="set-controls">
+            <option value="keyboard">Keyboard</option>
+            <option value="touch">Touch screen (joystick)</option>
+          </select>
+        </label>
         <button class="primary" data-action="back">Back</button>
         <button class="danger" data-action="resetsave">Delete saved progress</button>
       </div>
@@ -205,12 +245,12 @@
         <table class="keys">
           <tr><td>W A S D / Arrows</td><td>Steer</td></tr>
           <tr><td>Space</td><td>Turbo boost (uses fuel)</td></tr>
-          <tr><td>Shift</td><td>Use ability</td></tr>
-          <tr><td>Q or 1–9</td><td>Switch ability</td></tr>
-          <tr><td>H</td><td>Horn</td></tr>
+          <tr><td>B</td><td>Use your ability (pick it in the garage shop)</td></tr>
+          <tr><td>M</td><td>Horn</td></tr>
           <tr><td>E</td><td>Garage (after a level)</td></tr>
           <tr><td>Esc</td><td>Pause</td></tr>
         </table>
+        <p>On a phone or tablet, turn on touch controls in <b>Settings → Controls</b>: drag on the left side to steer, and use the buttons on the right.</p>
         <p>Collect material to open the portal, then beat the boss: catch the blue cores to fire back, and dodge everything red.</p>
         <button class="primary" data-action="back">Back</button>
       </div>

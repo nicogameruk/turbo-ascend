@@ -1,6 +1,6 @@
-import { UPGRADES, nextCost, buy, buyOrEquip } from './progress.js';
+import { UPGRADES, nextCost, buy, buyOrEquip, buyOrEquipAbility } from './progress.js';
 import { LEVELS } from './levels.js';
-import { ABILITIES, unlocked } from './abilities.js';
+import { ABILITIES, unlocked, availableAbilities } from './abilities.js';
 import { SHOP, SHOP_TABS } from './cosmetics.js';
 
 const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
@@ -12,7 +12,8 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
   const $ = (id) => document.getElementById(id);
   const go = $('garage-go');
   let tab = 'upgrades';
-  let shopKind = 'paint';
+  let shopKind = 'ability';
+  const TABS = [{ kind: 'ability', label: 'Ability' }, ...SHOP_TABS];
 
   // Stop buttons taking keyboard focus, so Enter/Space don't trigger them by accident.
   panel.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
@@ -36,6 +37,12 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
       onShop(kind, item);
       if (kind === 'horn') onPreviewHorn(item.id);
     } else sound('nope');
+    render();
+  };
+
+  const pickAbility = (id) => {
+    const owned = !ABILITIES[id].shop || progress.ownedAbilities.includes(id);
+    if (buyOrEquipAbility(progress, id)) { sound(owned ? 'ui' : 'buy'); onShop('ability'); } else sound('nope');
     render();
   };
 
@@ -69,24 +76,52 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
       b.classList.toggle('on', l.n === progress.level);
       levels.append(b);
     }
-    $('garage-abilities').innerHTML = Object.entries(ABILITIES)
-      .filter(([, a]) => a.level <= LEVELS.length)
-      .map(([id, a]) => (unlocked(id, progress.best)
-        ? `<li><b>${a.name}</b> — ${a.desc}</li>`
-        : `<li class="locked">Level ${a.level}: ???</li>`))
-      .join('');
+    const eq = progress.ability ? ABILITIES[progress.ability] : null;
+    $('garage-abilities').innerHTML = [
+      `<li><b>Equipped (B):</b> ${eq ? `${eq.name} — ${eq.desc}` : 'none'} · change it in <b>Shop → Ability</b></li>`,
+      ...Object.entries(ABILITIES)
+        .filter(([, a]) => !a.active && a.level <= LEVELS.length)
+        .map(([id, a]) => (unlocked(id, progress.best)
+          ? `<li><b>${a.name}</b> — ${a.desc}</li>`
+          : `<li class="locked">Level ${a.level}: ???</li>`)),
+    ].join('');
   }
 
   function renderShop() {
     const tabs = $('shop-kinds');
     tabs.innerHTML = '';
-    for (const t of SHOP_TABS) {
+    for (const t of TABS) {
       const b = button('chip', t.label, () => { sound('ui'); shopKind = t.kind; render(); });
       b.classList.toggle('on', t.kind === shopKind);
       tabs.append(b);
     }
     const list = $('shop-list');
     list.innerHTML = '';
+    if (shopKind === 'ability') {
+      // Pick the one ability you take into the next round: level rewards are free, shop ones cost coins.
+      // Order: ones you have, then ones to buy; locked level rewards are summed up in one line.
+      const have = availableAbilities(progress);
+      const actives = Object.keys(ABILITIES).filter((id) => ABILITIES[id].active);
+      const buyable = actives.filter((id) => ABILITIES[id].shop && !have.includes(id));
+      const locked = actives.filter((id) => !ABILITIES[id].shop && !have.includes(id));
+      for (const id of [...have, ...buyable]) {
+        const a = ABILITIES[id];
+        const owned = have.includes(id);
+        const on = progress.ability === id;
+        const right = on ? 'ON' : owned ? 'Use' : `${a.cost} ¢`;
+        const b = button('upgrade shop', `<span class="key">${a.shop ? '¢' : '★'}</span><span class="info"><b>${a.name}</b><small>${a.desc}</small></span><span class="cost">${right}</span>`,
+          () => pickAbility(id), !owned && progress.coins < a.cost);
+        b.classList.toggle('on', on);
+        list.append(b);
+      }
+      if (locked.length) {
+        const note = document.createElement('p');
+        note.className = 'note';
+        note.textContent = `★ ${locked.length} more abilities unlock as you beat levels (next one after level ${ABILITIES[locked[0]].level - 1}).`;
+        list.append(note);
+      }
+      return;
+    }
     for (const item of SHOP[shopKind]) {
       const owned = progress.owned[shopKind].includes(item.id);
       const equipped = progress.equipped[shopKind] === item.id;

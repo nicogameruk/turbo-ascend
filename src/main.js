@@ -18,13 +18,14 @@ import { createAudio } from './audio.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { findItem } from './cosmetics.js';
 import { getLevel, bossBonus, runCoins, LAST_LEVEL } from './levels.js';
-import { ABILITIES, activeAbilities, abilityCooldown, abilityDuration } from './abilities.js';
+import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from './abilities.js';
+import { createTouchControls } from './touch.js';
 import { BOUNDS } from './car.js';
 
 const BASE_SPEED = 40;
 const MENU_SPEED = 22;
 const INVULN_TIME = 1.5;
-const NO_INPUT = { up: false, down: false, left: false, right: false, boost: false };
+const NO_INPUT = { moveX: 0, moveY: 0, boost: false };
 
 // Without WebGL the game can't run: show a message instead of a blank page.
 let renderer;
@@ -43,7 +44,6 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 document.getElementById('app').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const DIGITS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'];
 const camera = createCamera();
 
 const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7a5434, 1.3);
@@ -70,6 +70,47 @@ breath.position.z = -3;
 breath.visible = false;
 car.group.add(breath);
 
+// Homing Missiles (shop ability): small glowing darts that chase a target.
+const missileGeo = new THREE.SphereGeometry(0.25, 10, 8);
+const missileMat = new THREE.MeshBasicMaterial({ color: 0xffd060 });
+const missiles = []; // { mesh, target, alive }
+function fireMissile(target, delay) {
+  let m = missiles.find((x) => !x.alive);
+  if (!m) {
+    m = { mesh: new THREE.Mesh(missileGeo, missileMat) };
+    m.mesh.scale.set(1, 1, 3);
+    scene.add(m.mesh);
+    missiles.push(m);
+  }
+  m.alive = true;
+  m.target = target;
+  m.delay = delay;
+  m.life = 3;
+  m.mesh.visible = false;
+  m.mesh.position.copy(car.group.position).add(new THREE.Vector3((Math.random() - 0.5) * 2, 0.8, -1));
+}
+function updateMissiles(dt) {
+  for (const m of missiles) {
+    if (!m.alive) continue;
+    m.delay -= dt;
+    if (m.delay > 0) continue;
+    m.mesh.visible = true;
+    m.life -= dt;
+    if (!m.target.alive || m.life <= 0) { m.alive = false; m.mesh.visible = false; continue; }
+    const to = m.target.pos.clone().sub(m.mesh.position);
+    if (to.length() < 2.5 * (m.target.size ?? 1)) {
+      m.target.destroy();
+      audio.play('boom');
+      m.alive = false;
+      m.mesh.visible = false;
+      continue;
+    }
+    m.mesh.position.addScaledVector(to.normalize(), 110 * dt);
+    m.mesh.lookAt(m.target.pos);
+  }
+}
+const clearMissiles = () => missiles.forEach((m) => { m.alive = false; m.mesh.visible = false; });
+
 const trails = createTrails(scene);
 const sparks = createSparks(scene);
 const booms = createBooms(scene);
@@ -83,6 +124,8 @@ const boss = createBoss(scene);
 const hud = createHud();
 const progress = restoreProgress(createProgress(), loadSave());
 audio.setSettings(progress.settings);
+const touch = createTouchControls(input);
+touch.setEnabled(progress.settings.controls === 'touch');
 
 // Enemy shots make a (quiet, rate-limited) sound.
 let lastShotSound = 0;
@@ -126,7 +169,7 @@ const menus = createMenus({
   onResume: () => resume(),
   onRestart: () => { menus.hide(); startRun(); },
   onQuit: () => showTitle(),
-  onSettings: (s) => { progress.settings = s; audio.setSettings(s); save(); },
+  onSettings: (s) => { progress.settings = s; audio.setSettings(s); touch.setEnabled(s.controls === 'touch'); save(); },
   onResetSave: () => {
     clearSave();
     const settings = progress.settings;
@@ -149,8 +192,7 @@ let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let invuln = 0, meters = 0, elapsed = 0, runTime = 0, speed = MENU_SPEED, runMat = 0, coinsEarned = 0;
 
-// Abilities: Shift uses the selected active one, Q switches.
-let selected = 0;
+// Abilities: B uses the one equipped in the garage shop (progress.ability).
 const cooldown = {}; // id -> seconds left
 let shieldT = 0;
 let dashT = 0;
@@ -160,8 +202,10 @@ let slowT = 0; // Slow Time
 let breathT = 0; // Fire Breath
 let breathTick = 0;
 let rainbowT = 0; // Rainbow Shield
-const resetAbilityTimers = () => { shieldT = dashT = warpT = freezeT = slowT = breathT = rainbowT = 0; };
-const actives = () => activeAbilities(progress.best);
+let nitroT = 0; // Nitro (shop)
+let doubleT = 0; // Double Up (shop)
+const resetAbilityTimers = () => { shieldT = dashT = warpT = freezeT = slowT = breathT = rainbowT = nitroT = doubleT = 0; };
+const equipped = () => (progress.ability && availableAbilities(progress).includes(progress.ability) ? progress.ability : null);
 const PLAYING = ['flying', 'boss', 'victory'];
 
 // Scenery for the title screen: the furthest level you've reached.
@@ -174,6 +218,8 @@ function setScene(l) {
 function showTitle() {
   state = 'menu';
   hud.banner('', 0);
+  hud.setActions([]);
+  clearMissiles();
   garage.close();
   boss.stop();
   enemies.hide();
@@ -217,6 +263,8 @@ function startRun() {
   speed = BASE_SPEED;
   runMat = 0;
   coinsEarned = 0;
+  hud.setActions([]);
+  clearMissiles();
   resetAbilityTimers();
   for (const id in cooldown) cooldown[id] = 0;
   car.setDash(false);
@@ -259,6 +307,11 @@ function gameOver() {
   audio.setEngine(false);
   audio.play('boom');
   audio.play('lose');
+  hud.setActions([
+    { label: 'Try again (R)', onClick: () => startRun() },
+    { label: 'Garage (E)', onClick: () => openGarage() },
+    { label: 'Menu (Esc)', onClick: () => showTitle() },
+  ]);
   save();
 }
 
@@ -288,14 +341,16 @@ const hazardCtx = {
   flash: () => hud.flash(0.5),
 };
 
-const ABILITY_SOUNDS = { warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield' };
+const ABILITY_SOUNDS = {
+  warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
+  nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap',
+};
 
 function useAbility() {
-  const list = actives();
-  if (!list.length) return;
-  const id = list[selected % list.length];
-  const a = ABILITIES[id];
+  const id = equipped();
+  if (!id) { hud.banner('No ability equipped — pick one in the garage shop', 2); return; }
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
+  if (id === 'repair' && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
   cooldown[id] = abilityCooldown(id, progress.best);
   const dur = abilityDuration(id, progress.best);
   const pos = car.group.position;
@@ -322,6 +377,22 @@ function useAbility() {
   if (id === 'slowtime') { slowT = dur; hud.banner('TIME SLOWED', 1.2); }
   if (id === 'firebreath') { breathT = dur; breathTick = 0; }
   if (id === 'rainbow') rainbowT = dur;
+  if (id === 'nitro') { nitroT = dur; car.fuel = 1; hud.banner('NITRO!', 1); }
+  if (id === 'repair') {
+    health += 1;
+    sparks.burst(pos, 20, 0x8dff9a);
+    hud.banner('+1 HEART', 1.2);
+  }
+  if (id === 'doubleup') { doubleT = dur; hud.banner('DOUBLE MATERIAL!', 1.5); }
+  if (id === 'missiles') {
+    const targets = enemies.targets(pos, state === 'boss' ? 3 : 4);
+    if (state === 'boss' && boss.hp > 0) {
+      targets.push({ pos: boss.group.position, size: boss.group.scale.x * 1.5, get alive() { return boss.hp > 0; }, destroy: () => boss.hurt(1) });
+    }
+    targets.forEach((t, i) => fireMissile(t, i * 0.08));
+    hud.banner(targets.length ? `MISSILES AWAY! ${targets.length} locked` : 'No targets in range', 1.2);
+    if (!targets.length) cooldown[id] = 1; // nothing to shoot: almost no wait
+  }
   if (id === 'blast') {
     booms.spawn(car.group.position, 0xfff6c0, 5);
     hud.flash(0.4);
@@ -347,12 +418,18 @@ function win() {
   state = 'victory';
   hazards.hide();
   enemies.hide();
+  clearMissiles();
   const earned = runMat + bossBonus(level);
   progress.bank += earned;
   coinsEarned = runCoins(level, meters, true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
-  if (firstClear) progress.best += 1;
+  if (firstClear) {
+    progress.best += 1;
+    // Equip a newly unlocked ability if nothing is equipped yet.
+    const fresh = Object.keys(ABILITIES).find((k) => ABILITIES[k].level === progress.best && ABILITIES[k].active);
+    if (fresh && !progress.ability) progress.ability = fresh;
+  }
   progress.level = Math.min(LAST_LEVEL, level.n + 1);
   const old = progress.records[level.n];
   const record = !old || runTime < old;
@@ -371,19 +448,25 @@ function win() {
     hud.banner('', 0);
     audio.play('portal');
     ending = { pay, time, total: Object.values(progress.records).reduce((a, b) => a + b, 0) };
+    hud.setActions([{ label: 'Garage (Enter)', onClick: () => openGarage() }]);
   } else if (firstClear) {
     const next = getLevel(progress.best);
     const ability = Object.values(ABILITIES).find((a) => a.level === next.n);
     car.setTier(progress.best); // the car changes look right away
-    hud.banner(`LEVEL COMPLETE! ${pay} · ${time} · New look + ${ability.name} unlocked — press E for the garage`, Infinity);
+    const where = ability.active ? ' (equip it in the garage shop)' : '';
+    hud.banner(`LEVEL COMPLETE! ${pay} · ${time} · New look + ${ability.name} unlocked${where}`, Infinity);
+    hud.setActions([{ label: 'Garage (E)', onClick: () => openGarage() }]);
   } else {
-    hud.banner(`LEVEL COMPLETE! ${pay} · ${time} — press E for the garage`, Infinity);
+    hud.banner(`LEVEL COMPLETE! ${pay} · ${time}`, Infinity);
+    hud.setActions([{ label: 'Garage (E)', onClick: () => openGarage() }]);
   }
 }
 
 function openGarage() {
   state = 'garage';
   hud.banner('', 0);
+  hud.setActions([]);
+  clearMissiles();
   boss.stop();
   shots.clear();
   hazards.hide();
@@ -424,7 +507,7 @@ function resume() {
 
 function update(dt, time) {
   car.update(dt, input, time);
-  const target = warpT > 0 ? 220 : car.boosting ? stats.boostSpeed : BASE_SPEED;
+  const target = warpT > 0 ? 220 : nitroT > 0 ? stats.boostSpeed * 1.25 : car.boosting ? stats.boostSpeed : BASE_SPEED;
   speed += (target - speed) * (1 - Math.exp(-3 * dt));
   const boostAmt = Math.min(1, (speed - BASE_SPEED) / (85 - BASE_SPEED));
 
@@ -443,14 +526,15 @@ function update(dt, time) {
   freezeT = Math.max(0, freezeT - dt);
   slowT = Math.max(0, slowT - dt);
   rainbowT = Math.max(0, rainbowT - dt);
+  nitroT = Math.max(0, nitroT - dt);
+  doubleT = Math.max(0, doubleT - dt);
+  updateMissiles(dt);
   if (dashT > 0) {
     dashT -= dt;
     if (dashT <= 0) car.setDash(false);
   }
   if (state === 'flying' || state === 'boss') {
-    if (input.wasPressed('KeyQ') && actives().length > 1) { selected = (selected + 1) % actives().length; audio.play('ui'); }
-    DIGITS.forEach((code, i) => { if (input.wasPressed(code) && i < actives().length) { selected = i; audio.play('ui'); } });
-    if (input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight')) useAbility();
+    if (input.wasPressed('KeyB')) useAbility();
   }
   car.setShield(shieldT > 0 || rainbowT > 0, time, rainbowT > 0);
 
@@ -483,7 +567,7 @@ function update(dt, time) {
 
   const got = materials.update(dt, speed, car.group.position, state === 'flying', time, stats.magnet);
   if (got) {
-    runMat += got;
+    runMat += got * (doubleT > 0 ? 2 : 1);
     hud.pulseMud();
     audio.play('pickup');
   }
@@ -551,7 +635,7 @@ function frame() {
     if (PLAYING.includes(state)) pause();
     else if (state === 'over') showTitle();
   }
-  if (input.wasPressed('KeyH') && (PLAYING.includes(state) || state === 'menu')) audio.horn(progress.equipped.horn);
+  if (input.wasPressed('KeyM') && (PLAYING.includes(state) || state === 'menu')) audio.horn(progress.equipped.horn);
 
   if (state === 'over' && input.wasPressed('KeyR')) startRun();
   else if (state === 'over' && input.wasPressed('KeyE')) openGarage();
@@ -567,8 +651,10 @@ function frame() {
   else if (state === 'over') { booms.update(dt); sparks.update(dt); }
   else if (state === 'ending') updateMenu(dt, time);
 
-  const list = actives();
-  const abilityId = list.length ? list[selected % list.length] : null;
+  const abilityId = equipped();
+  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) };
+  touch.setVisible(state === 'flying' || state === 'boss');
+  touch.setAbility(abilityInfo);
   hud.update(dt, {
     state,
     level,
@@ -586,7 +672,7 @@ function frame() {
     bossName: boss.name,
     bossHp: boss.hp,
     bossMax: boss.maxHp,
-    ability: abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, count: list.length },
+    ability: abilityInfo,
   });
   renderer.render(scene, camera);
   input.endFrame();
@@ -632,7 +718,15 @@ if (import.meta.env.DEV) {
     resume,
     // Jump to a level (unlocking everything up to it).
     play(n) { progress.best = Math.max(progress.best, n); progress.level = n; garage.close(); menus.hide(); startRun(); },
-    useAbility(id) { selected = Math.max(0, actives().indexOf(id)); useAbility(); },
+    // Equip and use an ability (unlocking/buying it for the test).
+    useAbility(id) {
+      if (ABILITIES[id].shop && !progress.ownedAbilities.includes(id)) progress.ownedAbilities.push(id);
+      progress.ability = id;
+      useAbility();
+    },
+    get missilesFlying() { return missiles.filter((m) => m.alive).length; },
+    get timers2() { return { nitroT, doubleT }; },
+    touch,
     openGarage,
     leaveGarage,
     showTitle,
