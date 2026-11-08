@@ -96,7 +96,8 @@ export function createTrails(scene) {
     return { offset, pts, pos, col, geo, mesh };
   });
   const c = new THREE.Color();
-  let color = 0x5fe4ff; // null = rainbow
+  let color = 0x5fe4ff; // null = rainbow, an array = colour bands
+  const band = new THREE.Color();
 
   return {
     setColor(hex) { color = hex; },
@@ -119,7 +120,12 @@ export function createTrails(scene) {
           const w = (0.1 + amount * 0.1) * f + 0.02;
           const p = r.pts[i];
           r.pos.set([p.x - w, p.y, p.z, p.x + w, p.y, p.z], i * 6);
-          if (color === null) c.setHSL((time * 0.5 + i / N) % 1, 1, 0.55);
+          if (Array.isArray(color)) {
+            // Colour bands that flow back along the trail, blending smoothly.
+            const pos = (i / N) * color.length * 1.5 - time * 2;
+            const k = ((Math.floor(pos) % color.length) + color.length) % color.length;
+            c.setHex(color[k]).lerp(band.setHex(color[(k + 1) % color.length]), pos - Math.floor(pos));
+          } else if (color === null) c.setHSL((time * 0.5 + i / N) % 1, 1, 0.55);
           else c.setHex(color);
           c.multiplyScalar(f * strength);
           r.col.set([c.r, c.g, c.b, c.r, c.g, c.b], i * 6);

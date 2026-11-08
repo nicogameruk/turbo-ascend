@@ -240,8 +240,8 @@ function applyLooks() {
   pet.set(progress.equipped.pet);
   pet.snap(car.group.position);
   const trail = findItem('trail', progress.equipped.trail);
-  trails.setColor(trail.color);
-  car.setTrailColor(trail.id === 'blue' ? 0xff8a2a : trail.color);
+  trails.setColor(trail.colors ?? trail.color);
+  car.setTrailColor(trail.id === 'blue' ? 0xff8a2a : trail.colors ? trail.colors[1] : trail.color);
 }
 
 const garage = createGarage(progress, {

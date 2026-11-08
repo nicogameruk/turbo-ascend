@@ -141,6 +141,7 @@ export function createGarage(progress, { onBuy, onLeave, onHome, onPickLevel, on
       const owned = progress.owned[shopKind].includes(item.id);
       const equipped = progress.equipped[shopKind] === item.id;
       const swatch = item.icon ?? (shopKind === 'horn' ? '🔊'
+        : item.colors ? `<span class="swatch" style="background:linear-gradient(135deg,${item.colors.map(hex).join(',')})"></span>`
         : item.color === null ? '<span class="swatch rainbow"></span>'
           : item.color === undefined ? '<span class="swatch level"></span>'
             : `<span class="swatch${item.metal ? ' metal' : ''}" style="background:${hex(item.color)}"></span>`);

@@ -47,6 +47,8 @@ export const SHOP = {
     { id: 'purple', name: 'Ultraviolet', cost: 60, color: 0xb86aff },
     { id: 'emerald', name: 'Emerald', cost: 70, color: 0x1aff8a },
     { id: 'rainbow', name: 'Rainbow', cost: 120, color: null },
+    // A list of colours flows along the trail in bands.
+    { id: 'champion', name: 'Champion Stripes', cost: 90, colors: [0x1adc5a, 0xffd21a, 0x2a5aff] },
   ],
   glow: [
     { id: 'upgrade', name: 'Thruster glow', cost: 0 }, // follows your Hover Thrusters upgrade
