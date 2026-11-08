@@ -213,7 +213,9 @@ function updateWebs(dt) {
 
 const toppers = createToppers(car.topperSlot);
 const pet = createPet(scene);
-const petIs = (id) => progress.equipped.pet === id || (progress.equipped.pet === 'omni' && id !== 'ufo' && id !== 'dragon');
+// The pet you have out (none on levels where pets stay home).
+function petOn() { return level.noPets ? 'none' : progress.equipped.pet; }
+const petIs = (id) => petOn() === id || (petOn() === 'omni' && id !== 'ufo' && id !== 'dragon');
 let omniTimer = 0; // Omni Spirit: casts a random ability every few seconds
 let petTimer = 0; // for pets that do something every few seconds
 let petUsed = false; // for once-a-level pet perks
@@ -328,8 +330,8 @@ let level = getLevel(progress.level);
 // Car stats: upgrades, then the body shape's bonus, then the pet's.
 const makeStats = () => {
   const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
-  if (progress.equipped.pet === 'toucan' || progress.equipped.pet === 'omni') s.refill *= 1.25;
-  if (progress.equipped.pet === 'omni') {
+  if (petOn() === 'toucan' || petOn() === 'omni') s.refill *= 1.25;
+  if (petOn() === 'omni') {
     // Every passive power, even before you unlock them
     s.maxHealth += 1;
     s.magnet = Math.max(s.magnet, 9);
@@ -430,6 +432,7 @@ function startRun() {
   progress.started = true;
   level = getLevel(progress.level);
   stats = makeStats();
+  pet.group.visible = petOn() !== 'none'; // hidden on levels where pets stay home
   setScene(level);
   boss.setPlayer(stats);
   boss.configure(level);
@@ -594,7 +597,7 @@ function useAbility() {
   if (!id) { hud.banner('No ability equipped — pick one in the garage shop', 2); return; }
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
   if ((id === 'repair' || id === 'dreamheal') && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
-  cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult;
+  cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult * (level.cooldownMult ?? 1);
   castAbility(id);
 }
 
@@ -843,6 +846,7 @@ function openGarage() {
   resetAbilityTimers();
   car.setDash(false);
   car.setShape(progress.equipped.body);
+  pet.set(progress.equipped.pet); // back from a level where pets stay home
   car.applyUpgrades(progress.levels);
   car.setTier(progress.best);
   audio.setEngine(false);
@@ -1016,7 +1020,7 @@ function update(dt, time) {
 // Pets that do something every few seconds.
 function updatePetPerks(dt) {
   petTimer += dt;
-  if (progress.equipped.pet === 'omni') {
+  if (petOn() === 'omni') {
     omniTimer += dt;
     if (omniTimer > 4) {
       omniTimer = 0;
@@ -1135,7 +1139,7 @@ function frame() {
   pet.update(dt, car.group.position, time);
   toppers.update(dt);
   const abilityId = equipped();
-  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult };
+  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult * (level.cooldownMult ?? 1) };
   const shownState = state === 'countdown' ? countdownTo : state;
   touch.setVisible(shownState === 'flying' || shownState === 'boss');
   touch.setAbility(abilityInfo);

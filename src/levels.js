@@ -355,8 +355,10 @@ export const LEVELS = [
   },
   // ---- The Impossible level: one heart, every enemy, every hazard ----
   {
-    n: 27, name: 'Impossible', material: 'Impossible Shards', goal: 80, space: true, landmark: 'blackhole',
+    n: 27, name: 'Impossible', material: 'Impossible Shards', goal: 100, space: true, landmark: 'blackhole',
     oneHeart: true, // only 1 heart here, whatever your upgrades
+    noPets: true, // your pet stays home: no pet powers
+    cooldownMult: 2, // abilities take twice as long to recharge
     sky: ['#000000', '#2a0006'], sky2: ['#0a0000', '#5a0010'], fog: 0x14000a, hemi: [0xffd8d8, 0x14000a],
     ground: null,
     scenery: { shape: 'crystal', color: 0x1a0004, float: true, glow: 0xff1a3a },
@@ -371,7 +373,7 @@ export const LEVELS = [
     },
     hazards: [{ type: 'asteroid', every: [2, 3] }, { type: 'meteor', every: [4, 6] }, { type: 'lightning', every: [5, 7] }, { type: 'lava', every: [8, 11] }],
     warnings: { lava: 'WALL OF DOOM — fly over it!', lightning: 'IMPOSSIBLE LIGHTNING!' },
-    boss: { name: 'THE IMPOSSIBLE', hp: 70, hull: 0x1a0004, fireEvery: 0.4, extra: 'eater', minion: 'bat', patterns: ['ring', 'minions', 'pull', 'breath', 'slow', 'teleport'] },
+    boss: { name: 'THE IMPOSSIBLE', hp: 100, hull: 0x1a0004, fireEvery: 0.4, extra: 'eater', minion: 'bat', patterns: ['ring', 'minions', 'pull', 'breath', 'slow', 'teleport'] },
     music: { root: 37, scale: PHRYGIAN, tempo: 168, lead: 'sawtooth' },
     ability: 'chaos',
   },
