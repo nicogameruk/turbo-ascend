@@ -24,5 +24,6 @@ Only the owner can type their own name, and names like "Frosty Hamster 55" are r
 3. In the game:
    - **New name:** New Game → tap the small 🔑 on the name screen → enter your code and the name you want.
    - **Keep your current name** (e.g. Frosty Hamster 55): Settings → 🔑 Owner → enter your code → Save.
+   - **Change your name any time** (keeps all progress and scores): Settings → 🔑 Owner → New name → Change my name.
 
 To reserve more names for yourself, run: `insert into public.reserved_names (name) values ('Another Name 12');`

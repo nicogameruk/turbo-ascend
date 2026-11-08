@@ -23,7 +23,7 @@ import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from 
 import { createTouchControls } from './touch.js';
 import { createToppers } from './toppers.js';
 import { createPet } from './pets.js';
-import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView, checkOwnerCode, OWNER_NAME_RULE } from './leaderboard.js';
+import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView, checkOwnerCode, renamePlayer, OWNER_NAME_RULE } from './leaderboard.js';
 import { BOUNDS } from './car.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -284,6 +284,16 @@ const menus = createMenus({
   onLeaders: () => boardMenu.render(),
   onCheckOwner: (code) => checkOwnerCode(code),
   onOwnerCode: (code) => { progress.ownerCode = code; save(); sendPoints(progress, save); },
+  getOwnerCode: () => progress.ownerCode,
+  // Owner rename: same racer, same progress, new name (also on the leaderboard).
+  onRename: async (name, code) => {
+    progress.name = name;
+    progress.ownerCode = code;
+    if (!progress.playerId) progress.playerId = newPlayerId();
+    save();
+    await renamePlayer(progress);
+    sendPoints(progress, save);
+  },
   ownerNameRule: OWNER_NAME_RULE,
   sound: (n) => audio.play(n),
 });

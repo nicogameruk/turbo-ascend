@@ -52,5 +52,15 @@ begin
     set points = scores.points + excluded.points, name = excluded.name, updated_at = now();
 end $$;
 
+-- Owner only: change your name, keeping your scores.
+create or replace function public.rename_player(p_player uuid, p_name text, p_code text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not check_owner(p_code) then raise exception 'not the owner'; end if;
+  if p_name !~ '^[A-Za-z0-9 _.!-]{1,20}$' then raise exception 'name not allowed'; end if;
+  update scores set name = p_name, updated_at = updated_at where player_id = p_player;
+end $$;
+
 grant execute on function public.check_owner(text) to anon;
+grant execute on function public.rename_player(uuid, text, text) to anon;
 grant execute on function public.add_score(uuid, text, integer, text) to anon;

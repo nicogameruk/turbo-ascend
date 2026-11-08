@@ -63,6 +63,17 @@ export async function checkOwnerCode(code) {
   try { return (await rpc('check_owner', { p_code: code })) === true; } catch { return false; }
 }
 
+// Owner only: change the name on your existing scores.
+export async function renamePlayer(progress) {
+  if (!leaderboardOn() || !progress.playerId || !progress.ownerCode) return false;
+  try {
+    await rpc('rename_player', { p_player: progress.playerId, p_name: progress.name, p_code: progress.ownerCode });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Starting over: the old racer's scores are removed from the boards.
 export async function forgetPlayer(playerId) {
   if (!leaderboardOn() || !playerId) return;

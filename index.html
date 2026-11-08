@@ -341,8 +341,10 @@
         </label>
         <details class="owner-settings">
           <summary>🔑 Owner</summary>
-          <label>Owner code <input type="password" id="set-owner-code" autocomplete="off" /></label>
+          <label>Owner code <input type="password" id="set-owner-code" autocomplete="off" placeholder="saved on this device" /></label>
           <button data-action="ownersave">Save code on this device</button>
+          <label>New name <input type="text" id="set-owner-name" maxlength="20" autocomplete="off" /></label>
+          <button data-action="ownerrename">Change my name</button>
           <p id="set-owner-msg"></p>
         </details>
         <button class="primary" data-action="back">Back</button>

@@ -3,7 +3,7 @@ import { randomName } from './names.js';
 
 const $ = (id) => document.getElementById(id);
 
-export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, onLeaders, onCheckOwner, onOwnerCode, ownerNameRule, sound }) {
+export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit, onSettings, onResetSave, onLeaders, onCheckOwner, onOwnerCode, onRename, getOwnerCode, ownerNameRule, sound }) {
   const panels = { title: $('menu-title'), name: $('menu-name'), leaders: $('menu-leaders'), pause: $('menu-pause'), settings: $('menu-settings'), controls: $('menu-controls') };
   const root = $('menus');
   let current = null;
@@ -44,6 +44,25 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
     },
     reroll,
     namestart: () => afterName?.(pendingName),
+    // Settings: owner only — change your name and keep all your progress and scores.
+    ownerrename: async () => {
+      const codeInput = $('set-owner-code');
+      const nameInput = $('set-owner-name');
+      const msg = $('set-owner-msg');
+      const code = codeInput.value || getOwnerCode();
+      const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      msg.style.color = '#ffb0b0';
+      if (!ownerNameRule.test(name)) { msg.textContent = 'Use 1–20 letters, numbers, spaces or _ . ! -'; return; }
+      if (!code) { msg.textContent = 'Enter your owner code first.'; return; }
+      msg.style.color = '';
+      msg.textContent = 'Checking…';
+      if (!(await onCheckOwner(code))) { msg.style.color = '#ffb0b0'; msg.textContent = 'That code isn\'t right.'; return; }
+      await onRename(name, code);
+      codeInput.value = '';
+      nameInput.value = '';
+      msg.style.color = '#8dff9a';
+      msg.textContent = `Done! You're now ${name}.`;
+    },
     // Settings: store the owner code on this device (for names like Frosty Hamster 55).
     ownersave: async () => {
       const input = $('set-owner-code');
