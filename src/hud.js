@@ -22,6 +22,8 @@ export function createHud() {
   const overlay = $('overlay');
   const help = $('help');
   const actions = $('actions');
+  const ready = $('ready');
+  let readyTimer = 0;
   const ability = $('ability');
   const abilityName = $('ability-name');
   const abilityFill = $('ability-fill');
@@ -54,6 +56,26 @@ export function createHud() {
         actions.append(b);
       }
       actions.style.display = list.length ? 'flex' : 'none';
+    },
+
+    // Pop-up at the top: your ability has recharged.
+    // theme: the level's { accent, glow, icon } (see LEVEL_THEMES in levels.js).
+    abilityReady(name, touch, theme) {
+      ready.textContent = `${theme?.icon ?? '⚡'} ${name} READY! ${touch ? 'Tap ABILITY' : 'Press B'}`;
+      if (theme) {
+        ready.style.setProperty('--accent', theme.accent);
+        ready.style.setProperty('--glow', theme.glow);
+      }
+      ready.classList.toggle('rainbow', !!theme?.rainbow);
+      ready.classList.remove('show');
+      void ready.offsetWidth; // restart the slide-in
+      ready.classList.add('show');
+      clearTimeout(readyTimer);
+      readyTimer = setTimeout(() => ready.classList.remove('show'), 2200);
+    },
+    hideAbilityReady() {
+      clearTimeout(readyTimer);
+      ready.classList.remove('show');
     },
 
     // Show the controls line for a few seconds.
@@ -100,6 +122,7 @@ export function createHud() {
       setText(distance, `${Math.floor(s.meters)} m`);
 
       boss.style.display = s.state === 'boss' ? 'block' : 'none';
+      document.body.classList.toggle('boss-fight', s.state === 'boss');
       setText(bossName, s.bossName);
       bossFill.style.width = `${(Math.max(0, s.bossHp) / s.bossMax) * 100}%`;
 

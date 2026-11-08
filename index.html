@@ -35,6 +35,12 @@
       #boss-bar { height: 14px; margin-top: 6px; border-radius: 7px; background: rgba(0,0,0,.4); border: 2px solid rgba(255,255,255,.6); overflow: hidden; }
       #boss-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff3344, #ff9a3c); transition: width .2s; }
       #banner { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 800; text-align: center; width: max-content; max-width: 90vw; opacity: 0; transition: opacity .3s; }
+      /* "Ability ready" pop-up: slides down from the top, then away. */
+      #ready { --accent: #8dff9a; --glow: #1f6a10; position: absolute; top: 12px; left: 50%; transform: translate(-50%, -140%); padding: 8px 20px; border-radius: 999px; background: linear-gradient(180deg, rgba(8,12,28,.9), color-mix(in srgb, var(--glow) 55%, rgba(8,12,28,.9))); border: 2px solid var(--accent); color: var(--accent); font-weight: 800; font-size: 18px; letter-spacing: .03em; white-space: nowrap; box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 55%, transparent); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent); transition: transform .35s cubic-bezier(.2,1.4,.4,1), opacity .35s; opacity: 0; z-index: 1; }
+      #ready.rainbow { animation: ready-rainbow 1.6s linear infinite; }
+      @keyframes ready-rainbow { to { filter: hue-rotate(360deg); } }
+      #ready.show { transform: translate(-50%, 0); opacity: 1; }
+      body.boss-fight #ready { top: 64px; }
       #warning { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 18px; color: #ff5a5a; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; }
       #overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(5,10,25,.55); font-size: 42px; font-weight: 800; text-align: center; }
       #overlay .ending { font-size: clamp(30px, 6vw, 56px); background: linear-gradient(180deg, #fff6c8, #ffb347, #c86aff); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -169,6 +175,7 @@
         <div id="boss-bar"><div id="boss-fill"></div></div>
       </div>
       <div id="banner"></div>
+      <div id="ready"></div>
       <div id="warning">ENEMY CLOSING IN</div>
       <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; B: ability &nbsp;·&nbsp; M: horn &nbsp;·&nbsp; Esc: pause</div>
       <div id="ability">

@@ -17,7 +17,7 @@ import { createMenus } from './menu.js';
 import { createAudio } from './audio.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { findItem } from './cosmetics.js';
-import { getLevel, bossBonus, runCoins, LAST_LEVEL } from './levels.js';
+import { getLevel, bossBonus, runCoins, LAST_LEVEL, LEVEL_THEMES } from './levels.js';
 import { ABILITIES, availableAbilities, abilityCooldown, abilityDuration } from './abilities.js';
 import { createTouchControls } from './touch.js';
 import { createToppers } from './toppers.js';
@@ -240,6 +240,7 @@ function setScene(l) {
 function showTitle() {
   state = 'menu';
   hud.banner('', 0);
+  hud.hideAbilityReady();
   hud.setActions([]);
   clearMissiles();
   garage.close();
@@ -535,6 +536,7 @@ function win() {
 function openGarage() {
   state = 'garage';
   hud.banner('', 0);
+  hud.hideAbilityReady();
   hud.setActions([]);
   clearMissiles();
   boss.stop();
@@ -590,7 +592,15 @@ function update(dt, time) {
   audio.setEngine(true, boostAmt);
 
   // Abilities
-  for (const id in cooldown) cooldown[id] = Math.max(0, cooldown[id] - dt);
+  for (const id in cooldown) {
+    const was = cooldown[id];
+    cooldown[id] = Math.max(0, cooldown[id] - dt);
+    // Recharged just now: pop up at the top of the screen.
+    if (was > 0 && cooldown[id] === 0 && id === equipped() && (state === 'flying' || state === 'boss')) {
+      hud.abilityReady(ABILITIES[id].name.toUpperCase(), touch.enabled, LEVEL_THEMES[level.n]);
+      audio.play('ready');
+    }
+  }
   shieldT = Math.max(0, shieldT - dt);
   warpT = Math.max(0, warpT - dt);
   freezeT = Math.max(0, freezeT - dt);

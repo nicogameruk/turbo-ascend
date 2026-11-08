@@ -199,6 +199,24 @@ export const LEVELS = [
   },
 ];
 
+// Colour and icon for each level's pop-ups (like "ability ready").
+export const LEVEL_THEMES = {
+  1: { accent: '#ffb347', glow: '#8a4a10', icon: '🟤' },
+  2: { accent: '#8dff6a', glow: '#1f6a10', icon: '🌿' },
+  3: { accent: '#d8e0ea', glow: '#4a5260', icon: '🪨' },
+  4: { accent: '#ff8a3a', glow: '#5a2a10', icon: '⚙️' },
+  5: { accent: '#ffd040', glow: '#8a6a00', icon: '🪙' },
+  6: { accent: '#9ff4ff', glow: '#1a6a8a', icon: '💎' },
+  7: { accent: '#fff0b0', glow: '#c89a3a', icon: '😇' },
+  8: { accent: '#c89aff', glow: '#4a1a8a', icon: '🌌' },
+  9: { accent: '#ff9a4a', glow: '#3a0a5a', icon: '🕳️' },
+  10: { accent: '#ff2ad8', glow: '#00d8ff', icon: '💾' },
+  11: { accent: '#ffc860', glow: '#5a3a10', icon: '⏳' },
+  12: { accent: '#ff5a1a', glow: '#8a1a00', icon: '🐉' },
+  13: { accent: '#ff6ad8', glow: '#6a6aff', icon: '🌈', rainbow: true },
+  14: { accent: '#fff2c0', glow: '#c89020', icon: '✨' },
+};
+
 export const LAST_LEVEL = LEVELS.length;
 export const getLevel = (n) => LEVELS[Math.min(LAST_LEVEL, Math.max(1, n)) - 1];
 
