@@ -102,6 +102,8 @@ export const SHOP = {
     { id: 'star', name: 'Star Sprite', cost: 200, icon: '⭐', desc: 'Your ability recharges 25% faster' },
     { id: 'phoenix', name: 'Phoenix', cost: 260, icon: '🔥', desc: 'Once a level, brings you back with 1 heart' },
     { id: 'toucan', name: 'Toucan', cost: 110, icon: '🦜', desc: 'Brazilian bird buddy: turbo fuel refills 25% faster' },
+    // A joke pet: it says it's amazing, but it's a rock that makes things worse.
+    { id: 'legend', name: 'Ultimate Legend', cost: 10000, icon: '👑', desc: 'THE BEST PET IN THE GAME!!! Makes you 1000% UNSTOPPABLE!!! Totally worth it, trust me' },
   ],
 };
 

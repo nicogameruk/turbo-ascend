@@ -113,6 +113,33 @@ const BUILDERS = {
     a.wings = wingPair(g, std(0xff7a3a, 0.6, 0, { side: THREE.DoubleSide }), 0.12, 0.05, 0.45);
     a.mouth = new THREE.Vector3(0, 0.14, -0.6);
   },
+  // Ultimate Legend: just a lumpy rock with googly eyes and a tiny crown.
+  legend(g, a) {
+    const rockGeo = new THREE.IcosahedronGeometry(0.3, 1);
+    const p = rockGeo.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const k = 1 + Math.sin(p.getX(i) * 17 + p.getY(i) * 11) * 0.12; // lumpy
+      p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.8, p.getZ(i) * k);
+    }
+    rockGeo.computeVertexNormals();
+    part(g, rockGeo, std(0x8a8680, 0.95, 0, { flatShading: true }));
+    // Googly eyes, a bit wonky
+    for (const [x, sz] of [[-0.11, 0.08], [0.12, 0.06]]) {
+      part(g, new THREE.SphereGeometry(sz, 12, 10), white, x, 0.08, -0.26);
+      part(g, new THREE.SphereGeometry(sz * 0.5, 8, 6), black, x + 0.02, 0.05, -0.26 - sz * 0.7);
+    }
+    // A tiny crown, slightly crooked
+    const gold = std(0xffc81a, 0.25, 1);
+    const crown = new THREE.Group();
+    part(crown, new THREE.CylinderGeometry(0.1, 0.1, 0.06, 16, 1, true), gold);
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * Math.PI * 2;
+      part(crown, new THREE.ConeGeometry(0.025, 0.07, 6), gold, Math.cos(ang) * 0.1, 0.06, Math.sin(ang) * 0.1);
+    }
+    crown.position.set(0.04, 0.26, 0);
+    crown.rotation.z = -0.25;
+    g.add(crown);
+  },
   star(g, a) {
     const s = new THREE.Shape();
     for (let i = 0; i < 10; i++) {

@@ -330,6 +330,7 @@ let level = getLevel(progress.level);
 const makeStats = () => {
   const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
   if (petOn() === 'toucan') s.refill *= 1.25;
+  if (petOn() === 'legend') s.refill *= 0.85; // the Ultimate Legend secretly makes things worse
   return s;
 };
 let stats = makeStats();
@@ -537,7 +538,7 @@ function gameOver() {
   car.setShield(false, 0);
   booms.spawn(car.group.position, 0xff6a2a, 1.4);
   hud.banner('', 0);
-  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
+  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult);
   addRunPoints(false);
   progress.coins += coinsEarned;
   audio.setEngine(false);
@@ -775,7 +776,7 @@ function win() {
   clearMissiles();
   const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
-  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
+  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult);
   addRunPoints(true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
@@ -1013,6 +1014,13 @@ function update(dt, time) {
 // Pets that do something every few seconds.
 function updatePetPerks(dt) {
   petTimer += dt;
+  // The Ultimate Legend brags every 8 s... and nothing happens.
+  if (petIs('legend') && petTimer > 8) {
+    petTimer = 0;
+    pet.flash();
+    sparks.burst(pet.mouth, 4, 0x8a8680);
+    hud.banner(['👑 ULTIMATE POWER ACTIVATED!!!', '👑 MEGA LEGEND MODE!!!', '👑 YOU ARE NOW UNSTOPPABLE!!!', '👑 MAXIMUM AWESOME!!!'][Math.floor(Math.random() * 4)], 1.2);
+  }
   // Once charged (6 s), the UFO zaps the next shots that come close.
   if (petIs('ufo') && petTimer > 6) {
     const n = shots.clearNear(car.group.position, 10) + (state === 'boss' ? boss.clearNear(car.group.position, 10) : 0);
