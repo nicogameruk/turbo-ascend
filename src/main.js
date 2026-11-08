@@ -343,6 +343,7 @@ let stats = makeStats();
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let repairT = 0; // Auto Repair timer
+let batteryT = 0; // Shield Battery timer
 // 3, 2, 1, GO! before a round starts and after unpausing. The game waits during it.
 let countdownT = 0;
 let countdownTo = 'flying';
@@ -460,6 +461,7 @@ function startRun() {
   secondWindUsed = false;
   coinsEarned = 0;
   repairT = 0;
+  batteryT = 0;
   hud.setActions([]);
   clearMissiles();
   petTimer = 0;
@@ -506,6 +508,7 @@ function damage() {
   }
   health -= 1;
   invuln = stats.invuln ?? INVULN_TIME;
+  if (stats.spikes && state === 'boss') boss.hurt(stats.spikes); // Spiked Hull
   if (health <= 0 && petIs('phoenix') && !petUsed) {
     petUsed = true;
     health = 1;
@@ -544,7 +547,7 @@ function gameOver() {
   car.setShield(false, 0);
   booms.spawn(car.group.position, 0xff6a2a, 1.4);
   hud.banner('', 0);
-  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult);
+  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult) + Math.floor(runMat / 10) * stats.goldRush;
   addRunPoints(false);
   progress.coins += coinsEarned;
   audio.setEngine(false);
@@ -782,7 +785,7 @@ function win() {
   clearMissiles();
   const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
-  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult);
+  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : petIs('legend') ? 0.9 : 1) * stats.coinMult) + Math.floor(runMat / 10) * stats.goldRush;
   addRunPoints(true);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
@@ -921,6 +924,14 @@ function update(dt, time) {
         hud.banner('🔧 Auto Repair: +1 heart', 1.2);
       }
     } else repairT = 0;
+    if (stats.batteryEvery) {
+      batteryT += dt;
+      if (batteryT >= stats.batteryEvery) {
+        batteryT = 0;
+        shieldT = Math.max(shieldT, 1.5);
+        audio.play('shield');
+      }
+    }
   }
   if (dashT > 0) {
     dashT -= dt;
@@ -966,6 +977,9 @@ function update(dt, time) {
     { collect: stats.collect, spawnMult: stats.spawnMult });
   if (got) {
     runMat += got * (doubleT > 0 ? 2 : 1);
+    if (stats.siphon) car.fuel = Math.min(1, car.fuel + got * stats.siphon); // Fuel Siphon
+    const eq = stats.combo && equipped();
+    if (eq && cooldown[eq] > 0) cooldown[eq] = Math.max(0, cooldown[eq] - got * stats.combo); // Combo Charge
     if (stats.streakBonus) {
       streak = elapsed - lastPickup < 2.5 ? streak + got : got;
       lastPickup = elapsed;

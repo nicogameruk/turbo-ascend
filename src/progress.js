@@ -15,6 +15,8 @@ export const UPGRADES = [
   { id: 'ram', group: 'Car', name: 'Battering Ram', desc: 'While boosting, crash through enemies without getting hurt', costs: [60] },
   { id: 'cruise', group: 'Car', name: 'Cruise Engine', desc: 'Fly a bit faster all the time, so chasers catch you slower', costs: [18, 36] },
   { id: 'pole', group: 'Car', name: 'Pole Position', desc: 'A perfect start: free turbo burst for 2 / 3.5 / 5 s at the start of every level', costs: [18, 36, 60] },
+  { id: 'siphon', group: 'Car', name: 'Fuel Siphon', desc: 'Every piece you grab refills 3% of your turbo fuel each', costs: [14, 28, 44] },
+  { id: 'fuelsaver', group: 'Car', name: 'Fuel Saver', desc: 'Turbo burns 10% less fuel each', costs: [12, 24, 40] },
   // Survival
   { id: 'recovery', group: 'Survival', name: 'Shock Absorbers', desc: 'Longer safe time after you get hit', costs: [12, 26] },
   { id: 'autorepair', group: 'Survival', name: 'Auto Repair', desc: 'Fixes 1 heart every 60 / 45 / 30 s', costs: [30, 50, 80] },
@@ -22,6 +24,7 @@ export const UPGRADES = [
   { id: 'lucky', group: 'Survival', name: 'Lucky Charm', desc: '6% chance per level to dodge a hit', costs: [20, 36, 56] },
   { id: 'emergency', group: 'Survival', name: 'Emergency Fuel', desc: 'Getting hit refills 40% / 80% of your turbo fuel', costs: [12, 24] },
   { id: 'emp', group: 'Survival', name: 'EMP Burst', desc: 'Getting hit blasts away enemies close to you', costs: [40] },
+  { id: 'battery', group: 'Survival', name: 'Shield Battery', desc: 'A free 1.5 s shield every 30 / 20 / 15 s', costs: [24, 44, 70] },
   { id: 'secondwind', group: 'Survival', name: 'Second Wind', desc: 'Once a level, a 3 / 5 s shield when you\'re down to 1 heart', costs: [22, 40] },
   // Collecting
   { id: 'coil', group: 'Collecting', name: 'Magnet Coil', desc: 'Pulls material in from further away', costs: [12, 22, 36] },
@@ -32,6 +35,7 @@ export const UPGRADES = [
   { id: 'coins', group: 'Collecting', name: 'Coin Collector', desc: '+15% coins each', costs: [15, 30, 50] },
   { id: 'portalkey', group: 'Collecting', name: 'Portal Key', desc: 'The portal opens with 10% less material each', costs: [25, 50] },
   { id: 'streak', group: 'Collecting', name: 'Streak Bonus', desc: 'Every 5 pieces grabbed in a row gives +1 / +2 extra', costs: [16, 32] },
+  { id: 'goldrush', group: 'Collecting', name: 'Gold Rush', desc: '+1 coin each for every 10 pieces you collect in a level', costs: [18, 36, 60] },
   { id: 'bargain', group: 'Collecting', name: 'Bargain Hunter', desc: 'Shop items cost 10% fewer coins each', costs: [30, 60] },
   // Abilities and bosses
   { id: 'capacitor', group: 'Abilities & Bosses', name: 'Ability Capacitor', desc: 'Your ability recharges 10% faster each', costs: [14, 28, 46] },
@@ -40,6 +44,8 @@ export const UPGRADES = [
   { id: 'bossbreaker', group: 'Abilities & Bosses', name: 'Boss Breaker', desc: 'Bosses start with 10% less health each', costs: [25, 50] },
   { id: 'amplifier', group: 'Abilities & Bosses', name: 'Ability Amplifier', desc: 'Your ability lasts 20% longer each', costs: [16, 32] },
   { id: 'corerain', group: 'Abilities & Bosses', name: 'Core Rain', desc: 'Bosses drop blue cores 20% more often each', costs: [18, 36] },
+  { id: 'combo', group: 'Abilities & Bosses', name: 'Combo Charge', desc: 'Every piece you grab makes your ability recharge 0.15 s sooner each', costs: [16, 32, 50] },
+  { id: 'spikes', group: 'Abilities & Bosses', name: 'Spiked Hull', desc: 'When a boss fight hit lands on you, the boss takes 1 / 2 damage too', costs: [30, 55] },
   { id: 'bounty', group: 'Abilities & Bosses', name: 'Bounty Hunter', desc: '+25% boss reward each', costs: [20, 40] },
 ];
 
@@ -150,7 +156,7 @@ export function buyOrEquipAbility(progress, id) {
 export function getStats(levels, best = 1) {
   const tankBonus = unlocked('tank', best) ? 1.3 : 1;
   return {
-    fuelDrain: 0.35 / ((1 + 0.3 * levels.tank) * tankBonus),
+    fuelDrain: 0.35 / ((1 + 0.3 * levels.tank) * tankBonus) * (1 - 0.1 * (levels.fuelsaver ?? 0)),
     fuelBarScale: Math.min(2.2, (1 + 0.2 * levels.tank) * (tankBonus > 1 ? 1.15 : 1)),
     maxHealth: 3 + levels.armor + (unlocked('armor', best) ? 1 : 0),
     steerSpeed: 13 * (1 + 0.12 * levels.thrusters),
@@ -181,5 +187,10 @@ export function getStats(levels, best = 1) {
     coreEvery: 2 * (1 - 0.2 * levels.corerain),
     bountyMult: 1 + 0.25 * levels.bounty,
     poleBoost: [0, 2, 3.5, 5][levels.pole ?? 0],
+    siphon: 0.03 * (levels.siphon ?? 0),
+    batteryEvery: [0, 30, 20, 15][levels.battery ?? 0],
+    goldRush: levels.goldrush ?? 0,
+    combo: 0.15 * (levels.combo ?? 0),
+    spikes: levels.spikes ?? 0,
   };
 }
