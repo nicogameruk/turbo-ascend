@@ -7,7 +7,7 @@ const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 export const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 
 // Garage between levels: upgrades (materials), the shop (coins) and records.
-export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, onPreviewHorn, onLeaders, sound }) {
+export function createGarage(progress, { onBuy, onLeave, onHome, onPickLevel, onShop, onPreviewHorn, onLeaders, sound }) {
   const panel = document.getElementById('garage');
   const $ = (id) => document.getElementById(id);
   const go = $('garage-go');
@@ -23,6 +23,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
   // Stop buttons taking keyboard focus, so Enter/Space don't trigger them by accident.
   panel.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
   go.addEventListener('click', () => onLeave());
+  $('garage-home').addEventListener('click', () => { sound('ui'); onHome(); });
   panel.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => { sound('ui'); tab = b.dataset.tab; render(); }));
 
   const tryBuy = (up) => {
@@ -192,6 +193,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
         render();
       }
       if (input.wasPressed('Enter') || input.wasPressed('KeyE')) onLeave();
+      else if (input.wasPressed('Escape')) onHome();
     },
   };
 }

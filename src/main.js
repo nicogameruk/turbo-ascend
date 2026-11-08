@@ -206,6 +206,7 @@ function applyLooks() {
 const garage = createGarage(progress, {
   onBuy: () => { car.applyUpgrades(progress.levels); save(); },
   onLeave: () => leaveGarage(),
+  onHome: () => { if (state === 'garage') showTitle(); },
   onPickLevel: (n) => { progress.level = n; save(); },
   onShop: () => { applyLooks(); save(); },
   onPreviewHorn: (id) => audio.horn(id),

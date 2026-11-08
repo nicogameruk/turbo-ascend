@@ -105,7 +105,10 @@
       .lvl:disabled { opacity: .3; cursor: default; }
       #garage-abilities { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
       #garage-abilities .locked { opacity: .45; }
-      #garage-go { margin-top: auto; padding: 12px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
+      .garage-top { display: flex; gap: 8px; }
+      #garage-home { flex: none; width: 52px; padding: 0; border-radius: 10px; border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: #fff; font-size: 22px; cursor: pointer; }
+      #garage-home:hover { border-color: #ffcf8a; background: rgba(255,207,138,.15); }
+      #garage-go { flex: 1; padding: 12px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
 
       /* Menus */
       #fatal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; color: #fff; text-align: center; font-size: 18px; line-height: 1.6; }
@@ -218,6 +221,10 @@
       <div id="overlay"></div>
       <div id="actions"></div>
       <div id="garage">
+        <div class="garage-top">
+          <button id="garage-home" title="Home screen (Esc)">🏠</button>
+          <button id="garage-go">Fly (Enter)</button>
+        </div>
         <h1>GARAGE</h1>
         <div id="garage-name"></div>
         <div class="bank">
@@ -252,7 +259,6 @@
           <h2>BEST CLEAR TIMES</h2>
           <ul id="records-list"></ul>
         </div>
-        <button id="garage-go">Fly (Enter)</button>
       </div>
     </div>
 
