@@ -67,6 +67,8 @@ export const SHOP = {
     { id: 'tophat', name: 'Top Hat', cost: 70, icon: '🎩' },
     { id: 'duck', name: 'Rubber Duck', cost: 80, icon: '🦆' },
     { id: 'crown', name: 'Crown', cost: 120, icon: '👑' },
+    { id: 'helmet', name: 'Racing Helmet', cost: 90, icon: '⛑️', desc: 'White with a red stripe' },
+    { id: 'champion', name: 'Champion Helmet', cost: 150, icon: '🏆', desc: 'Yellow with green and blue racing stripes' },
   ],
   horn: [
     { id: 'beep', name: 'Beep Beep', cost: 0 },

@@ -13,7 +13,59 @@ function part(g, geo, mat, x = 0, y = 0, z = 0) {
   return m;
 }
 
+// A racing helmet: a painted shell, a dark visor across the front, and a chin guard.
+// draw(ctx, w, h) paints the shell's design onto a canvas wrapped around it.
+function racingHelmet(g, draw) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 256;
+  draw(c.getContext('2d'), 512, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const paint = new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08 });
+  const shell = part(g, new THREE.SphereGeometry(0.5, 40, 24), paint, 0, 0.42, 0);
+  shell.scale.set(0.95, 0.92, 1.1);
+  // Dark visor wrapped around the front (the car faces -z)
+  const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x14161c, roughness: 0.05, metalness: 0.6, clearcoat: 1, side: THREE.DoubleSide });
+  const visor = part(g, new THREE.CylinderGeometry(0.49, 0.49, 0.17, 32, 1, true, Math.PI * 0.62, Math.PI * 0.76), visorMat, 0, 0.42, 0);
+  visor.scale.set(0.98, 1, 1.12);
+  // Chin guard and a little air vent on top
+  const chin = part(g, new THREE.SphereGeometry(0.3, 20, 12, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), paint, 0, 0.28, -0.32);
+  chin.scale.set(1.2, 0.7, 0.8);
+  part(g, roundBox(0.14, 0.05, 0.3, 0.02), std(0x2a2a30), 0, 0.88, 0.05);
+  g.scale.setScalar(1.2); // a bit bigger so it shows up while flying
+}
+
 const BUILDERS = {
+  // Classic white racing helmet with a red stripe over the top.
+  helmet(g) {
+    racingHelmet(g, (x, w, h) => {
+      x.fillStyle = '#f6f6f8'; x.fillRect(0, 0, w, h);
+      x.fillStyle = '#d81e2a'; x.fillRect(0, 0, w, h * 0.12); // stripe over the crown
+      x.fillRect(w * 0.47, 0, w * 0.06, h); // stripe front-to-back
+    });
+  },
+  // Champion helmet: bright yellow with green and blue racing stripes.
+  champion(g) {
+    racingHelmet(g, (x, w, h) => {
+      x.fillStyle = '#ffd21a'; x.fillRect(0, 0, w, h);
+      // Two diagonal racing stripes sweeping back along each side
+      for (const [col, off, thick] of [['#169a3c', 0, 34], ['#1e46c8', 44, 16]]) {
+        x.fillStyle = col;
+        for (const side of [0, w / 2]) {
+          x.beginPath();
+          x.moveTo(side + 20 + off, h * 0.25);
+          x.lineTo(side + 20 + off + thick, h * 0.25);
+          x.lineTo(side + 200 + off + thick, h * 0.62);
+          x.lineTo(side + 200 + off, h * 0.62);
+          x.closePath();
+          x.fill();
+        }
+      }
+      x.fillStyle = '#169a3c'; x.fillRect(0, 0, w, h * 0.07); // green ring on the very top
+    });
+  },
+
   antenna(g) {
     part(g, new THREE.CylinderGeometry(0.02, 0.02, 1, 6), std(0x333333, 0.4, 0.8), 0.5, 0.5, 0.6);
     part(g, new THREE.SphereGeometry(0.14, 14, 10), std(0xff2a3a, 0.3), 0.5, 1.05, 0.6);
