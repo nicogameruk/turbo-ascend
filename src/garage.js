@@ -14,6 +14,11 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
   let tab = 'upgrades';
   let shopKind = 'ability';
   const TABS = [{ kind: 'ability', label: 'Ability' }, ...SHOP_TABS];
+  // Upgrade sections, like the shop's: one section shows at a time.
+  const UPGRADE_GROUPS = [...new Set(UPGRADES.map((u) => u.group))];
+  const GROUP_LABELS = { 'Abilities & Bosses': 'Powers' };
+  let upgradeGroup = UPGRADE_GROUPS[0];
+  const shownUpgrades = () => UPGRADES.filter((u) => u.group === upgradeGroup);
 
   // Stop buttons taking keyboard focus, so Enter/Space don't trigger them by accident.
   panel.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
@@ -56,16 +61,18 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
   };
 
   function renderUpgrades() {
+    const kinds = $('upgrade-kinds');
+    kinds.innerHTML = '';
+    for (const grp of UPGRADE_GROUPS) {
+      // Show how many in the section you can afford right now.
+      const affordable = UPGRADES.filter((u) => u.group === grp && nextCost(progress, u) !== null && progress.bank >= nextCost(progress, u)).length;
+      const b = button('chip', `${GROUP_LABELS[grp] ?? grp}${affordable ? ` <span class="badge">${affordable}</span>` : ''}`, () => { sound('ui'); upgradeGroup = grp; render(); });
+      b.classList.toggle('on', grp === upgradeGroup);
+      kinds.append(b);
+    }
     const list = $('garage-list');
     list.innerHTML = '';
-    let group = null;
-    UPGRADES.forEach((up, i) => {
-      if (up.group !== group) {
-        group = up.group;
-        const h = document.createElement('h2');
-        h.textContent = group.toUpperCase();
-        list.append(h);
-      }
+    shownUpgrades().forEach((up, i) => {
       const lvl = progress.levels[up.id];
       const cost = nextCost(progress, up);
       list.append(button('upgrade', `
@@ -170,7 +177,7 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
     close() { panel.style.display = 'none'; },
     handleKeys(input) {
       if (tab === 'upgrades') {
-        UPGRADES.forEach((up, i) => {
+        shownUpgrades().forEach((up, i) => {
           if (input.wasPressed(`Digit${i + 1}`) || input.wasPressed(`Numpad${i + 1}`)) tryBuy(up);
         });
       }
