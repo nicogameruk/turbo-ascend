@@ -71,6 +71,32 @@ const breathGeo = new THREE.ConeGeometry(4, 40, 20, 1, true);
 breathGeo.translate(0, -20, 0);
 breathGeo.rotateX(-Math.PI / 2); // tip at the car, wide end ahead
 const breath = new THREE.Mesh(breathGeo, breathMat);
+let omegaBeam = false; // Omega Beam reuses the Fire Breath cone, bigger and white
+
+// Tidal Wave: a wall of water that rushes forward.
+const wave = new THREE.Mesh(new THREE.BoxGeometry(22, 9, 2), new THREE.MeshBasicMaterial({ color: 0x5ad8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+wave.visible = false;
+scene.add(wave);
+let waveT = 0;
+
+// Ice Wall: a sheet of ice just in front of the car.
+const iceWall = new THREE.Mesh(new THREE.BoxGeometry(7, 4.5, 0.25), new THREE.MeshStandardMaterial({ color: 0xd8f4ff, roughness: 0.05, transparent: true, opacity: 0.45, emissive: 0x4a8ab8, emissiveIntensity: 0.5 }));
+iceWall.position.set(0, 0.3, -5);
+iceWall.visible = false;
+car.group.add(iceWall);
+
+// Helper Drones: two little drones orbit the car.
+const helpers = [0, 1].map(() => {
+  const d = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshStandardMaterial({ color: 0xc8d0da, metalness: 0.8, roughness: 0.3 }));
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0x5ad8ff }));
+  eye.position.z = -0.28;
+  d.add(core, eye);
+  d.visible = false;
+  scene.add(d);
+  return d;
+});
+let helperShot = 0;
 breath.position.z = -3;
 breath.visible = false;
 car.group.add(breath);
@@ -226,7 +252,10 @@ let breathTick = 0;
 let rainbowT = 0; // Rainbow Shield
 let nitroT = 0; // Nitro (shop)
 let doubleT = 0; // Double Up (shop)
-const resetAbilityTimers = () => { shieldT = dashT = warpT = freezeT = slowT = breathT = rainbowT = nitroT = doubleT = 0; };
+let iceT = 0; // Ice Wall
+let phantomT = 0; // Phantom
+let helperT = 0; // Helper Drones
+const resetAbilityTimers = () => { shieldT = dashT = warpT = freezeT = slowT = breathT = rainbowT = nitroT = doubleT = iceT = phantomT = helperT = waveT = 0; };
 const equipped = () => (progress.ability && availableAbilities(progress).includes(progress.ability) ? progress.ability : null);
 const PLAYING = ['flying', 'boss', 'victory'];
 
@@ -312,7 +341,7 @@ function startRun() {
 let devGodMode = false; // dev test hook only
 function damage() {
   if (state !== 'flying' && state !== 'boss') return false;
-  if (dashT > 0 || warpT > 0) return false; // dashing/warping: things pass right through you
+  if (dashT > 0 || warpT > 0 || phantomT > 0) return false; // dashing/warping/ghost: things pass right through you
   if (shieldT > 0 || rainbowT > 0) {
     booms.spawn(car.group.position, 0x7fd8ff, 0.6);
     audio.play('block');
@@ -415,13 +444,15 @@ const hazardCtx = {
 const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
   nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap',
+  tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
+  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast',
 };
 
 function useAbility() {
   const id = equipped();
   if (!id) { hud.banner('No ability equipped — pick one in the garage shop', 2); return; }
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
-  if (id === 'repair' && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
+  if ((id === 'repair' || id === 'dreamheal') && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
   cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult;
   const dur = abilityDuration(id, progress.best) * stats.durationMult;
   const pos = car.group.position;
@@ -446,7 +477,61 @@ function useAbility() {
   }
   if (id === 'hack') { freezeT = dur; hud.banner('HACKED — everything is frozen!', 1.5); }
   if (id === 'slowtime') { slowT = dur; hud.banner('TIME SLOWED', 1.2); }
-  if (id === 'firebreath') { breathT = dur; breathTick = 0; }
+  if (id === 'firebreath') { breathT = dur; breathTick = 0; omegaBeam = false; }
+  if (id === 'omega') {
+    breathT = dur;
+    breathTick = 0;
+    omegaBeam = true;
+    hud.flash(0.5);
+    hud.banner('Ω OMEGA BEAM!', 1.5);
+  }
+  if (id === 'tidal') {
+    waveT = 1;
+    wave.position.set(pos.x, pos.y, pos.z - 2);
+    const n = enemies.burnAhead(pos) + enemies.blast(pos, 22);
+    shots.clearAhead(pos, 160);
+    boss.clearShots();
+    hazards.smash(pos, 90, (p, c, sz) => booms.spawn(p, c, sz));
+    if (state === 'boss') boss.hurt(1);
+    hud.banner(n ? `TIDAL WAVE! ${n} washed away` : 'TIDAL WAVE!', 1.2);
+  }
+  if (id === 'sugarrush') {
+    nitroT = dur;
+    doubleT = dur;
+    car.fuel = 1;
+    hud.banner('🍬 SUGAR RUSH!', 1.2);
+  }
+  if (id === 'meteorstrike') {
+    const targets = enemies.targets(pos, 6);
+    if (state === 'boss' && boss.hp > 0) {
+      for (let k = 0; k < 2; k++) targets.push({ pos: boss.group.position, size: boss.group.scale.x * 1.5, get alive() { return boss.hp > 0; }, destroy: () => boss.hurt(1) });
+    }
+    // The meteors drop from high above each target.
+    targets.forEach((t, k) => fireMissile(t, k * 0.1, t.pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 8, 30, -10))));
+    hud.banner(targets.length ? `☄️ METEOR STRIKE! ${targets.length} targets` : 'No targets in range', 1.2);
+    if (!targets.length) cooldown[id] = 1;
+  }
+  if (id === 'icewall') iceT = dur;
+  if (id === 'phantom') { phantomT = dur; hud.banner('👻 PHANTOM — nothing can touch you', 1.5); }
+  if (id === 'helperdrones') { helperT = dur; helperShot = 0; hud.banner('🤖 HELPER DRONES!', 1.2); }
+  if (id === 'vinegrab') {
+    materials.pullAll(1.6);
+    slowT = Math.max(slowT, dur);
+    booms.spawn(pos, 0x5aff6a, 3);
+    hud.banner('🌿 VINE GRAB!', 1.2);
+  }
+  if (id === 'thunder') {
+    const targets = enemies.targets(pos, 8);
+    for (const t of targets) { booms.spawn(t.pos, 0xd8f0ff, 1.5); t.destroy(); }
+    if (state === 'boss') boss.hurt(2);
+    hud.flash(0.6);
+    hud.banner(`⚡ THUNDERSTRIKE! ${targets.length + (state === 'boss' ? 1 : 0)} zapped`, 1.2);
+  }
+  if (id === 'dreamheal') {
+    health = Math.min(stats.maxHealth, health + 2);
+    sparks.burst(pos, 24, 0xffb8f0);
+    hud.banner('💭 SWEET DREAMS: +2 hearts', 1.2);
+  }
   if (id === 'rainbow') rainbowT = dur;
   if (id === 'nitro') { nitroT = dur; car.fuel = 1; hud.banner('NITRO!', 1); }
   if (id === 'repair') {
@@ -548,6 +633,9 @@ function openGarage() {
   car.group.visible = true;
   car.setShield(false, 0);
   breath.visible = false;
+  iceWall.visible = false;
+  wave.visible = false;
+  helpers.forEach((d) => { d.visible = false; });
   resetAbilityTimers();
   car.setDash(false);
   car.applyUpgrades(progress.levels);
@@ -608,6 +696,7 @@ function update(dt, time) {
   rainbowT = Math.max(0, rainbowT - dt);
   nitroT = Math.max(0, nitroT - dt);
   doubleT = Math.max(0, doubleT - dt);
+  updateNewAbilities(dt, time);
   updateMissiles(dt);
   if (state === 'flying' || state === 'boss') {
     updatePetPerks(dt);
@@ -632,10 +721,12 @@ function update(dt, time) {
 
   // Fire Breath burns what's ahead every few frames.
   breath.visible = breathT > 0;
+  breathMat.color.setHex(omegaBeam ? 0xc8e8ff : 0xff7a20);
   if (breathT > 0) {
     breathT -= dt;
     breathMat.opacity = 0.35 + Math.random() * 0.25;
-    breath.scale.set(1 + Math.random() * 0.1, 1 + Math.random() * 0.1, 1);
+    const big = omegaBeam ? 1.8 : 1;
+    breath.scale.set(big * (1 + Math.random() * 0.1), big * (1 + Math.random() * 0.1), omegaBeam ? 1.6 : 1);
     breathTick -= dt;
     if (breathTick <= 0) {
       breathTick = 0.15;
@@ -645,12 +736,14 @@ function update(dt, time) {
       boss.clearShots();
       hazards.smash(pos, 45, (p, c, sz) => booms.spawn(p, c, sz));
     }
-    if (state === 'boss' && Math.floor((breathT + dt) / 0.6) !== Math.floor(breathT / 0.6)) boss.hurt(1);
+    const every = omegaBeam ? 0.35 : 0.6;
+    if (state === 'boss' && Math.floor((breathT + dt) / every) !== Math.floor(breathT / every)) boss.hurt(1);
   }
 
   invuln = Math.max(0, invuln - dt);
   car.group.visible = invuln > 0 ? Math.floor(invuln * 12) % 2 === 0 : true;
   if (dashT > 0 || warpT > 0) car.group.visible = Math.floor(time * 30) % 2 === 0;
+  if (phantomT > 0) car.group.visible = Math.floor(time * 8) % 3 !== 0; // ghostly flicker
   // Slow Time and Hack slow or stop everything except you.
   const edt = freezeT > 0 ? 0 : slowT > 0 ? dt * 0.35 : dt;
   meters += speed * dt;
@@ -728,6 +821,46 @@ function updatePetPerks(dt) {
       fireMissile(target, 0, pet.mouth.clone());
       audio.play('whoosh');
       pet.flash();
+    }
+  }
+}
+
+// Timers and visuals for the level 15-24 abilities.
+function updateNewAbilities(dt, time) {
+  const pos = car.group.position;
+  phantomT = Math.max(0, phantomT - dt);
+  // Ice Wall: melts every shot that reaches it.
+  iceT = Math.max(0, iceT - dt);
+  iceWall.visible = iceT > 0;
+  if (iceT > 0) {
+    shots.clearAhead(pos, 9);
+    boss.clearNear(pos.clone().add(new THREE.Vector3(0, 0, -4)), 5);
+    iceWall.material.opacity = 0.35 + Math.sin(time * 6) * 0.08;
+  }
+  // Tidal Wave rushing forward.
+  if (waveT > 0) {
+    waveT = Math.max(0, waveT - dt);
+    wave.visible = waveT > 0;
+    wave.position.z -= 160 * dt;
+    wave.material.opacity = waveT * 0.5;
+  } else wave.visible = false;
+  // Helper Drones: orbit and shoot.
+  helperT = Math.max(0, helperT - dt);
+  helpers.forEach((d, k) => {
+    d.visible = helperT > 0;
+    if (!d.visible) return;
+    const a = time * 3 + k * Math.PI;
+    d.position.set(pos.x + Math.cos(a) * 2.6, pos.y + 1 + Math.sin(a * 2) * 0.4, pos.z + Math.sin(a) * 1.5);
+  });
+  if (helperT > 0) {
+    helperShot -= dt;
+    if (helperShot <= 0) {
+      helperShot = state === 'boss' ? 1.4 : 0.7;
+      const [t] = enemies.targets(pos, 1);
+      const target = t ?? (state === 'boss' && boss.hp > 0
+        ? { pos: boss.group.position, size: boss.group.scale.x * 1.5, get alive() { return boss.hp > 0; }, destroy: () => boss.hurt(1) }
+        : null);
+      if (target) fireMissile(target, 0, helpers[Math.floor(Math.random() * 2)].position.clone());
     }
   }
 }

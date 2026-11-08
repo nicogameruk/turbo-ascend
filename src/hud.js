@@ -141,8 +141,8 @@ export function createHud() {
 
       let html = '';
       if (s.state === 'ending' && s.ending) {
-        html = `<span class="ending">YOU ARE A COSMIC GOD</span>
-          <small>The Universe Eater is gone. From a dented dirt car to a glowing star — you did it.<br>
+        html = `<span class="ending">YOU ARE THE OMEGA LEGEND</span>
+          <small>The Omega is gone. From a dented dirt car all the way past the edge of the universe — you did it.<br>
           ${s.ending.pay} · ${s.ending.time}<br>
           All your best times added up: ${Math.floor(s.ending.total / 60)} min ${Math.round(s.ending.total % 60)} s<br><br>
           Thanks for playing <b>Turbo Ascend</b>! Replay any level from the garage to beat your records.</small>`;

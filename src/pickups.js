@@ -54,6 +54,16 @@ const LOOKS = {
   12: { geo: scaleGeometry, color: 0x2a8a3a, rough: 0.3, metal: 0.6, emissive: 0x6a1a0a, halo: 0xff6a2a, flat: true },
   13: { geo: () => new THREE.OctahedronGeometry(0.6, 0), color: 0xffffff, rough: 0.05, metal: 0.1, emissive: 0x888888, halo: 0xffffff, flat: true, rainbow: true },
   14: { geo: () => new THREE.IcosahedronGeometry(0.55, 1), color: 0xfff8e0, rough: 0.1, metal: 0.4, emissive: 0xffd060, halo: 0xfff0b0, flat: true },
+  15: { geo: () => new THREE.SphereGeometry(0.45, 20, 14), color: 0xfff4f8, rough: 0.05, metal: 0.5, emissive: 0x5a6a8a, halo: 0x9adfff },
+  16: { geo: () => new THREE.BoxGeometry(0.65, 0.65, 0.65), color: 0xffc8e8, rough: 0.9, metal: 0, emissive: 0xaa4a7a, halo: 0xff8ad8 },
+  17: { geo: () => new THREE.OctahedronGeometry(0.55, 0), color: 0xff3a0a, rough: 0.3, metal: 0.2, emissive: 0xff2a00, halo: 0xff8a2a, flat: true },
+  18: { geo: () => new THREE.OctahedronGeometry(0.45, 0).scale(0.6, 1.8, 0.6), color: 0xe8f8ff, rough: 0.02, metal: 0.1, emissive: 0x4a8ab8, halo: 0xd8f4ff, flat: true, opacity: 0.8 },
+  19: { geo: () => new THREE.SphereGeometry(0.45, 14, 10), color: 0x6aff6a, rough: 0.1, metal: 0, emissive: 0x2a8a2a, halo: 0x9aff9a, opacity: 0.7 },
+  20: { geo: () => new THREE.CylinderGeometry(0.5, 0.5, 0.2, 8), color: 0xa0a8b0, rough: 0.3, metal: 0.95, emissive: 0x3a2a10, halo: 0xffa040, flat: true },
+  21: { geo: () => new THREE.CapsuleGeometry(0.3, 0.4, 4, 8), color: 0xffcc33, rough: 0.15, metal: 1, emissive: 0x6a4a00, halo: 0xffe27a },
+  22: { geo: () => new THREE.SphereGeometry(0.45, 16, 12), color: 0x9ad8ff, rough: 0.1, metal: 0.2, emissive: 0x3a8aff, halo: 0xd8f0ff },
+  23: { geo: () => new THREE.SphereGeometry(0.5, 20, 14), color: 0xffd8f8, rough: 0.02, metal: 0.1, emissive: 0x8a6aaa, halo: 0xffffff, opacity: 0.55, rainbow: true },
+  24: { geo: () => new THREE.IcosahedronGeometry(0.6, 0), color: 0xffffff, rough: 0.05, metal: 0.3, emissive: 0xc8a8ff, halo: 0xffffff, flat: true },
 };
 
 // Floating material you fly into to collect. One look per level.

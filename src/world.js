@@ -141,6 +141,19 @@ function createLandmarks(scene) {
     g.add(cone, lava, plume);
     g.position.set(120, -30, -650);
   });
+  add('moon', (g) => {
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(55, 40, 24), new THREE.MeshBasicMaterial({ color: 0xf0f4ff, fog: false }));
+    const halo = new THREE.Mesh(new THREE.CircleGeometry(95, 48), glow(0xc8d8ff, 0.18));
+    halo.position.z = -5;
+    // A few darker craters
+    for (const [x, y, r] of [[-15, 12, 10], [18, -8, 13], [5, 22, 6], [-22, -18, 8]]) {
+      const c = new THREE.Mesh(new THREE.CircleGeometry(r, 20), new THREE.MeshBasicMaterial({ color: 0xc8ccd8, fog: false }));
+      c.position.set(x, y, 54);
+      g.add(c);
+    }
+    g.add(halo, moon);
+    g.position.set(110, 85, -640);
+  });
   add('galaxy', (g) => {
     const tex = canvasTexture(256, (x) => {
       const grad = x.createRadialGradient(128, 128, 0, 128, 128, 128);

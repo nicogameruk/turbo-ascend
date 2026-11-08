@@ -16,6 +16,16 @@ export const ABILITIES = {
   firebreath: { name: 'Fire Breath', desc: 'Breathe fire ahead, burning enemies and shots', level: 12, active: true, cooldown: 10, duration: 1.6 },
   rainbow: { name: 'Rainbow Shield', desc: '6 s shield that destroys whatever it touches', level: 13, active: true, cooldown: 16, duration: 6 },
   cosmic: { name: 'Cosmic Power', desc: 'Passive: every ability recharges twice as fast and lasts longer', level: 14 },
+  tidal: { name: 'Tidal Wave', desc: 'A huge wave wipes out enemies and shots ahead', level: 15, active: true, cooldown: 12, duration: 1 },
+  sugarrush: { name: 'Sugar Rush', desc: 'Free super boost and double material for 5 s', level: 16, active: true, cooldown: 18, duration: 5 },
+  meteorstrike: { name: 'Meteor Strike', desc: 'Call meteors down on up to 6 enemies (2 hit the boss)', level: 17, active: true, cooldown: 14 },
+  icewall: { name: 'Ice Wall', desc: 'An ice wall in front of you blocks every shot for 5 s', level: 18, active: true, cooldown: 15, duration: 5 },
+  phantom: { name: 'Phantom', desc: 'Turn into a ghost for 4 s: nothing can hit you', level: 19, active: true, cooldown: 16, duration: 4 },
+  helperdrones: { name: 'Helper Drones', desc: 'Two drones fly with you for 8 s and shoot enemies', level: 20, active: true, cooldown: 18, duration: 8 },
+  vinegrab: { name: 'Vine Grab', desc: 'Grab all material on screen and slow enemies for 3 s', level: 21, active: true, cooldown: 14, duration: 3 },
+  thunder: { name: 'Thunderstrike', desc: 'Lightning zaps up to 8 enemies (and hits the boss twice)', level: 22, active: true, cooldown: 14 },
+  dreamheal: { name: 'Sweet Dreams', desc: 'Heal 2 hearts', level: 23, active: true, cooldown: 30 },
+  omega: { name: 'Omega Beam', desc: 'A giant beam melts everything ahead, boss included, for 2 s', level: 24, active: true, cooldown: 20, duration: 2 },
 
   // Bought in the shop with coins.
   nitro: { name: 'Nitro', desc: 'Full fuel and a free super boost for 2.5 s', active: true, shop: true, cost: 40, cooldown: 14, duration: 2.5 },

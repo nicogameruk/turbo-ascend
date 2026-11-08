@@ -236,6 +236,22 @@ export function createBoss(scene) {
     }
   }
   const eaterParts = {};
+  { // Gummy Giant: giant lollipops and sprinkles
+    const g = extra('candy');
+    const stick = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    for (const [x, col] of [[-3.6, 0xff4a8a], [3.6, 0x4ad8ff]]) {
+      put(g, new THREE.CylinderGeometry(0.12, 0.12, 3, 8), stick, x, 2.2, 0);
+      const pop = put(g, new THREE.CylinderGeometry(1.1, 1.1, 0.3, 24), new THREE.MeshStandardMaterial({ color: col, roughness: 0.25 }), x, 3.9, 0);
+      pop.rotation.x = Math.PI / 2;
+      const swirl = put(g, new THREE.TorusGeometry(0.6, 0.08, 6, 24), new THREE.MeshStandardMaterial({ color: 0xffffff }), x, 3.9, 0.17);
+      spinners.push({ mesh: swirl, axis: 'z', speed: 2 });
+    }
+    const sprinkleCols = [0xff3a5a, 0x3aff6a, 0xffd03a, 0x3a8aff, 0xffffff];
+    for (let i = 0; i < 24; i++) {
+      const sp = put(g, new THREE.CapsuleGeometry(0.06, 0.25, 2, 4), new THREE.MeshBasicMaterial({ color: sprinkleCols[i % 5] }), (Math.random() - 0.5) * 6.6, 1.15, (Math.random() - 0.5) * 3.6);
+      sp.rotation.set(Math.PI / 2, 0, Math.random() * 3);
+    }
+  }
   { // Universe Eater: a huge maw full of teeth around a swirling core
     const g = extra('eater');
     const maw = put(g, new THREE.TorusGeometry(4.2, 1.1, 16, 48), new THREE.MeshStandardMaterial({ color: 0x1a0a2a, roughness: 0.3, metalness: 0.8, emissive: 0x2a0a4a }), 0, 0.5, 1.5);
@@ -559,7 +575,7 @@ export function createBoss(scene) {
           minionT -= dt;
           if (minionT <= 0) {
             minionT = third < 0.34 ? 4 : 6;
-            hooks.spawn?.(Math.random() < 0.5 ? 'spirit' : 'demon');
+            hooks.spawn?.(cfg.minion ?? (Math.random() < 0.5 ? 'spirit' : 'demon'));
             ev.minion = true;
           }
         }

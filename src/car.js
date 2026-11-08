@@ -22,6 +22,17 @@ const TIERS = {
   12: { color: 0x6a1a10, rough: 0.6, metal: 0.3, flat: true, emissive: 0x2a0500 },
   13: { color: 0xffffff, rough: 0.2, metal: 0.3, emissive: 0x222222 }, // colour cycles
   14: { color: 0xfff2c0, rough: 0.2, metal: 0.2, emissive: 0xffc860, glow: 1.1 },
+  // parts: which decorations to show (from the looks above)
+  15: { color: 0x1a8a9a, rough: 0.15, metal: 0.7, emissive: 0x0a3a4a, parts: [10] }, // Ocean: deep teal with glowing lines
+  16: { color: 0xff8ad8, rough: 0.35, metal: 0.1, emissive: 0x3a0a2a, parts: [5, 13] }, // Candy: pink with sugar trim
+  17: { color: 0x1a0a08, rough: 0.5, metal: 0.4, emissive: 0xff3a00, glow: 0.7, parts: [12] }, // Volcano: black and glowing, dragon wings
+  18: { color: 0xdff6ff, rough: 0.05, metal: 0.1, opacity: 0.7, emissive: 0x4a8ab8, parts: [6] }, // Ice: see-through frost
+  19: { color: 0x2a1a3a, rough: 0.4, metal: 0.3, emissive: 0x6a2a8a, parts: [8, 9] }, // Haunted: ghostly purple with a ring
+  20: { color: 0x9aa0a8, rough: 0.25, metal: 0.95, parts: [4, 10] }, // Factory: steel, rivets and neon
+  21: { color: 0x4a7a2a, rough: 0.5, metal: 0.3, parts: [2, 5] }, // Jungle: mossy with gold trim
+  22: { color: 0x2a3a5a, rough: 0.3, metal: 0.6, emissive: 0x4a8aff, parts: [9, 10] }, // Storm: dark blue, crackling
+  23: { color: 0xffd8f0, rough: 0.2, metal: 0.2, emissive: 0x6a4a6a, parts: [13, 8, 7], rainbow: true }, // Dream: pastel, wings, rainbow
+  24: { color: 0xffffff, rough: 0.1, metal: 0.4, emissive: 0xffffff, glow: 0.9, parts: [14, 7, 12] }, // Omega: blinding white
 };
 
 export function createCar() {
@@ -294,7 +305,8 @@ export function createCar() {
   let rainbowFlame = false;
 
   const showParts = (n) => {
-    for (const [k, g] of Object.entries(tierParts)) g.visible = Number(k) === n || (Number(k) === 5 && n === 6);
+    const list = TIERS[n]?.parts ?? [n, ...(n === 6 ? [5] : [])];
+    for (const [k, g] of Object.entries(tierParts)) g.visible = list.includes(Number(k));
   };
   let flickerAt = -1;
 
@@ -314,7 +326,7 @@ export function createCar() {
         mudSplats.forEach((m) => { m.visible = old === 1; });
       }
     }
-    if (tier === 13 && paintOverride === null) paint.color.setHSL((time * 0.15) % 1, 0.85, 0.6);
+    if ((tier === 13 || TIERS[tier]?.rainbow) && paintOverride === null) paint.color.setHSL((time * 0.15) % 1, 0.85, 0.6);
     if (glowOverride === null) glow.color.setHSL((time * 0.3) % 1, 1, 0.6);
     for (const gp of glowParts) {
       if (gp.kind === 'twinkle') gp.mesh.scale.setScalar(0.5 + Math.abs(Math.sin(time * 3 + gp.phase)));

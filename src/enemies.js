@@ -765,9 +765,230 @@ function createSpirit() {
   };
 }
 
+// ---------- Shark (Ocean Abyss): swims up from below, then lunges at you ----------
+function createShark() {
+  const group = new THREE.Group();
+  const grey = std(0x6a7a88, 0.4, 0.3);
+  const belly = std(0xe8eef4, 0.5, 0.1);
+  const body = mesh(group, new THREE.SphereGeometry(0.8, 18, 12), grey);
+  body.scale.set(0.9, 0.8, 2.4);
+  mesh(group, new THREE.SphereGeometry(0.7, 16, 10), belly, 0, -0.2, -0.3).scale.set(0.8, 0.5, 2);
+  const fin = mesh(group, new THREE.ConeGeometry(0.35, 1.1, 4), grey, 0, 0.9, 0.2);
+  fin.rotation.x = -0.4;
+  const tail = new THREE.Group();
+  tail.position.z = 1.9;
+  mesh(tail, new THREE.ConeGeometry(0.5, 1.2, 4), grey, 0, 0.3, 0.3).rotation.x = 1.2;
+  mesh(tail, new THREE.ConeGeometry(0.35, 0.8, 4), grey, 0, -0.3, 0.2).rotation.x = 2;
+  group.add(tail);
+  for (const x of [-0.75, 0.75]) mesh(group, new THREE.BoxGeometry(0.9, 0.08, 0.5), grey, x, -0.3, -0.2).rotation.z = x * 0.6;
+  for (const x of [-0.35, 0.35]) mesh(group, new THREE.SphereGeometry(0.09, 8, 6), basic(0x111111), x, 0.2, -1.6);
+  mesh(group, new THREE.BoxGeometry(0.6, 0.05, 0.15), basic(0xffffff), 0, -0.25, -1.75);
+
+  let phase, t, side;
+  return {
+    group,
+    radius: 1.8,
+    blastable: true,
+    start({ carPos }) {
+      side = Math.random() < 0.5 ? -1 : 1;
+      group.position.set(THREE.MathUtils.clamp(carPos.x + side * 4, -7, 7), -6, -140);
+      phase = 'swim';
+      t = 0;
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { carPos, time, diff }) {
+      const p = group.position;
+      t += dt;
+      tail.rotation.y = Math.sin(time * 10) * 0.5;
+      if (phase === 'swim') {
+        p.z += (45 + diff) * dt;
+        p.y += (carPos.y - 1.5 - p.y) * ease(1.2, dt);
+        p.x = THREE.MathUtils.clamp(carPos.x + side * 4 + Math.sin(t * 2) * 1.5, -8, 8);
+        group.rotation.y = Math.PI;
+        if (p.z > -26) { phase = 'lunge'; t = 0; }
+      } else if (phase === 'lunge') {
+        // Snaps toward where you are.
+        p.z += (38 + diff * 1.5) * dt;
+        p.x += (carPos.x - p.x) * ease(3, dt);
+        p.y += (carPos.y - p.y) * ease(3, dt);
+        if (p.z > 20) return false;
+      } else {
+        p.y -= 14 * dt;
+        p.z -= 20 * dt;
+        if (p.y < -30) return false;
+      }
+      return true;
+    },
+  };
+}
+
+// ---------- Gummy bear (Candy Land): bounces down your lane ----------
+const GUMMY_COLORS = [0xff3a5a, 0x3aff6a, 0xffd03a, 0xff8a1a, 0x8a5aff];
+function createGummy() {
+  const group = new THREE.Group();
+  const mat = std(0xff3a5a, 0.15, 0, { transparent: true, opacity: 0.8, emissive: 0x3a0010, emissiveIntensity: 0.4 });
+  const body = new THREE.Group();
+  group.add(body);
+  mesh(body, new THREE.SphereGeometry(0.6, 16, 12), mat).scale.set(1, 1.15, 0.9);
+  mesh(body, new THREE.SphereGeometry(0.45, 16, 12), mat, 0, 0.85, 0);
+  for (const x of [-0.3, 0.3]) {
+    mesh(body, new THREE.SphereGeometry(0.15, 10, 8), mat, x, 1.2, 0);
+    mesh(body, new THREE.SphereGeometry(0.2, 10, 8), mat, x * 1.6, 0.25, 0);
+    mesh(body, new THREE.SphereGeometry(0.22, 10, 8), mat, x * 1.1, -0.65, 0);
+    mesh(body, new THREE.SphereGeometry(0.05, 6, 4), basic(0x221111), x * 0.5, 0.95, 0.4);
+  }
+  let t, baseX, hop, speed;
+  return {
+    group,
+    radius: 1.4,
+    blastable: true,
+    start({ carPos, diff }) {
+      mat.color.setHex(GUMMY_COLORS[Math.floor(Math.random() * GUMMY_COLORS.length)]);
+      baseX = THREE.MathUtils.clamp(carPos.x + rand(-3, 3), -BOUNDS.x, BOUNDS.x);
+      group.position.set(baseX, 2, -200);
+      t = rand(0, 1);
+      hop = rand(1.6, 2.4);
+      speed = 26 + diff * 1.5 + rand(0, 6);
+    },
+    onRam() { group.position.z = 30; },
+    update(dt, { time }) {
+      const p = group.position;
+      t += dt;
+      p.z += speed * dt;
+      // Bounce from the bottom of the flying area to the top.
+      const b = Math.abs(Math.sin(t * hop));
+      p.y = BOUNDS.yMin + 0.3 + b * (BOUNDS.yMax - BOUNDS.yMin - 0.6);
+      body.scale.set(1 + (1 - b) * 0.25, 1 - (1 - b) * 0.2, 1);
+      group.rotation.y = Math.sin(time * 3) * 0.3;
+      return p.z < 25;
+    },
+  };
+}
+
+// ---------- Bat (Haunted Night): small, fast, flies in zig-zags ----------
+function createBat() {
+  const group = new THREE.Group();
+  const dark = std(0x1a1020, 0.6, 0.1);
+  mesh(group, new THREE.SphereGeometry(0.28, 10, 8), dark).scale.set(1, 0.9, 1.2);
+  for (const x of [-0.12, 0.12]) {
+    mesh(group, new THREE.ConeGeometry(0.07, 0.2, 4), dark, x, 0.3, 0);
+    mesh(group, new THREE.SphereGeometry(0.05, 6, 4), basic(0xff2a2a), x * 0.8, 0.08, 0.26);
+  }
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0);
+  wingShape.lineTo(0.5, 0.35);
+  wingShape.lineTo(1.1, 0.25);
+  wingShape.lineTo(0.9, -0.1);
+  wingShape.lineTo(0.65, 0.05);
+  wingShape.lineTo(0.45, -0.15);
+  wingShape.lineTo(0.2, -0.05);
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  wingGeo.rotateX(-Math.PI / 2);
+  const wingMat = std(0x2a1a2a, 0.7, 0, { side: THREE.DoubleSide });
+  const wings = [-1, 1].map((sd) => {
+    const pivot = new THREE.Group();
+    pivot.position.x = sd * 0.15;
+    pivot.scale.x = sd;
+    pivot.add(new THREE.Mesh(wingGeo, wingMat));
+    group.add(pivot);
+    return { pivot, sd };
+  });
+  let t, amp, freq, speed, cx, cy;
+  return {
+    group,
+    radius: 1.1,
+    blastable: true,
+    start({ carPos, diff }) {
+      cx = THREE.MathUtils.clamp(carPos.x + rand(-4, 4), -BOUNDS.x, BOUNDS.x);
+      cy = THREE.MathUtils.clamp(carPos.y + rand(-2, 2), BOUNDS.yMin, BOUNDS.yMax);
+      group.position.set(cx, cy, -180);
+      t = rand(0, 6);
+      amp = rand(1.5, 3.5);
+      freq = rand(2.5, 4);
+      speed = 34 + diff * 1.5 + rand(0, 8);
+    },
+    onRam() { group.position.z = 30; },
+    update(dt, { carPos, time }) {
+      const p = group.position;
+      t += dt;
+      p.z += speed * dt;
+      // Drift toward you while zig-zagging.
+      if (p.z < -10) { cx += (carPos.x - cx) * ease(0.8, dt); cy += (carPos.y - cy) * ease(0.8, dt); }
+      p.x = cx + Math.sin(t * freq) * amp;
+      p.y = cy + Math.cos(t * freq * 1.3) * amp * 0.4;
+      wings.forEach(({ pivot, sd }) => { pivot.rotation.z = sd * Math.sin(time * 22) * 0.9; });
+      return p.z < 25;
+    },
+  };
+}
+
+// ---------- Giant bee (Jungle Temple): hovers ahead, then dives with its stinger ----------
+function createBee() {
+  const group = new THREE.Group();
+  const yellow = std(0xffc81a, 0.5, 0.1);
+  const black = std(0x1a1410, 0.5, 0.1);
+  const body = mesh(group, new THREE.SphereGeometry(0.6, 16, 12), yellow);
+  body.scale.set(0.9, 0.9, 1.4);
+  for (const z of [-0.3, 0.15, 0.55]) mesh(group, new THREE.CylinderGeometry(0.56, 0.56, 0.16, 16), black, 0, 0, z).rotation.x = Math.PI / 2;
+  mesh(group, new THREE.SphereGeometry(0.4, 14, 10), black, 0, 0.1, 0.95);
+  for (const x of [-0.18, 0.18]) mesh(group, new THREE.SphereGeometry(0.12, 8, 6), basic(0xff2a1a), x, 0.2, 1.25);
+  const sting = mesh(group, new THREE.ConeGeometry(0.12, 0.5, 8), black, 0, 0, -1.05);
+  sting.rotation.x = -Math.PI / 2;
+  const wingMat = new THREE.MeshBasicMaterial({ color: 0xe8f8ff, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false });
+  const wings = [-1, 1].map((sd) => {
+    const w = mesh(group, new THREE.CircleGeometry(0.6, 16), wingMat, sd * 0.6, 0.6, 0.1);
+    w.rotation.x = -Math.PI / 2;
+    w.scale.set(1.4, 0.6, 1);
+    return { w, sd };
+  });
+  let phase, t;
+  const aim = new THREE.Vector3();
+  const vel = new THREE.Vector3();
+  return {
+    group,
+    radius: 1.4,
+    blastable: true,
+    start() {
+      group.position.set(rand(-6, 6), rand(2, 7), -200);
+      phase = 'enter';
+      t = 0;
+    },
+    onRam() { phase = 'leave'; },
+    update(dt, { carPos, time, diff }) {
+      const p = group.position;
+      t += dt;
+      wings.forEach(({ w, sd }) => { w.rotation.z = sd * Math.sin(time * 60) * 0.6; });
+      if (phase === 'enter') {
+        p.z += 75 * dt;
+        if (p.z >= -24) { phase = 'buzz'; t = 0; }
+      } else if (phase === 'buzz') {
+        // Buzzes around, lining up with you...
+        p.x += (carPos.x + Math.sin(t * 6) * 1.5 - p.x) * ease(2, dt);
+        p.y += (carPos.y + Math.cos(t * 7) * 0.8 - p.y) * ease(2, dt);
+        group.lookAt(carPos.x, carPos.y, carPos.z + 30);
+        if (t > 1.3 - diff * 0.03) {
+          phase = 'dive';
+          aim.copy(carPos);
+          vel.subVectors(aim, p).normalize().multiplyScalar(42 + diff * 1.5);
+        }
+      } else if (phase === 'dive') {
+        // ...then dives at where you were.
+        p.addScaledVector(vel, dt);
+        if (p.z > 22) return false;
+      } else {
+        p.y += 12 * dt;
+        p.z -= 25 * dt;
+        if (p.y > 40) return false;
+      }
+      return true;
+    },
+  };
+}
+
 const FACTORIES = {
   bike: createBike, jet: createJet, ufo: createUfo, warship: createWarship, sniper: createSniper, demon: createDemon,
   pirate: createPirate, void: createVoid, glitch: createGlitch, dragon: createDragon, spirit: createSpirit,
+  shark: createShark, gummy: createGummy, bat: createBat, bee: createBee,
 };
 
 export function createEnemies(scene, booms) {

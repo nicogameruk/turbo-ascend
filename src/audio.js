@@ -251,9 +251,86 @@ export function createAudio() {
       delay: 0.3,
     },
   };
+  Object.assign(STYLES, {
+    underwater: { // Ocean Abyss: slow, bubbly and echoey
+      kick: 'x.......x.......', shaker: '..x...x...x...x.',
+      bass: 'long', bassWave: 'sine',
+      pad: true, padWave: 'triangle',
+      arp: { wave: 'sine', octave: 2, every: 2, vol: 0.05 },
+      lead: { wave: 'sine', octave: 1, density: 0.3, len: 3, vol: 0.08 },
+      delay: 0.45, softDrums: true,
+    },
+    candy: { // Candy Land: sugary bouncy pop
+      kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.',
+      bass: 'bounce', bassWave: 'square', bassFilter: 1400,
+      bell: { octave: 2, every: 4 },
+      arp: { wave: 'square', octave: 2, every: 2, vol: 0.035 },
+      lead: { wave: 'square', octave: 1, density: 0.6, len: 0.8, vol: 0.08 },
+      delay: 0.12,
+    },
+    volcano: { // Volcano Core: pounding drums and heavy bass
+      kick: 'x..x..x.x..x..x.', taiko: 'x.....x.x.......', snare: '....x.......x...', tom: '............xxxx',
+      bass: 'heavy', bassWave: 'sawtooth', bassFilter: 450,
+      pad: true, padWave: 'sawtooth',
+      lead: { wave: 'sawtooth', octave: 0, density: 0.35, len: 1.6, vol: 0.07, filter: 1100 },
+    },
+    ice: { // Ice Age: cold, sparkly and spacious
+      kick: 'x...........x...', hat: '....x.......x...',
+      bass: 'long', bassWave: 'sine',
+      pad: true, padWave: 'triangle',
+      bell: { octave: 2, every: 3 },
+      lead: { wave: 'sine', octave: 2, density: 0.25, len: 3, vol: 0.08 },
+      delay: 0.4, softDrums: true,
+    },
+    haunted: { // Haunted Night: spooky organ and harpsichord
+      kick: 'x.....x.....x...', snare: '......x.........',
+      bass: 'walk', bassWave: 'triangle',
+      pad: true, padWave: 'square',
+      arp: { wave: 'square', octave: 1, every: 1, vol: 0.03, filter: 2000 },
+      lead: { wave: 'triangle', octave: 1, density: 0.3, len: 2, vol: 0.09 },
+      delay: 0.3,
+    },
+    factory: { // Robot Factory: machine techno
+      kick: 'x...x...x...x...', clap: '....x.......x...', metal: '.x...x...x...x..', hat: 'xxxxxxxxxxxxxxxx',
+      bass: 'pulse16', bassWave: 'sawtooth', bassFilter: 900,
+      arp: { wave: 'square', octave: 1, every: 2, vol: 0.035, filter: 2200 },
+      lead: { wave: 'square', octave: 1, density: 0.25, len: 0.7, vol: 0.06 },
+      delay: 0.18,
+    },
+    jungle: { // Jungle Temple: tribal drums and marimba
+      kick: 'x.......x.......', taiko: 'x..x..x...x.x...', tom: '...x.....x...x..', shaker: 'xxxxxxxxxxxxxxxx',
+      bass: 'root4', bassWave: 'triangle',
+      lead: { wave: 'triangle', octave: 1, density: 0.6, len: 0.6, vol: 0.12 },
+      delay: 0.15,
+    },
+    storm: { // Storm Sky: fast drum and bass
+      kick: 'x.........x.....', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx',
+      bass: 'drone', bassWave: 'sawtooth', bassFilter: 500,
+      pad: true,
+      lead: { wave: 'sawtooth', octave: 1, density: 0.35, len: 1.2, vol: 0.06, filter: 2400 },
+      delay: 0.2,
+    },
+    dream: { // Dream World: a soft music box lullaby
+      bass: 'long', bassWave: 'sine',
+      bell: { octave: 2, every: 2 },
+      harp: true,
+      lead: { wave: 'sine', octave: 2, density: 0.3, len: 3, vol: 0.07 },
+      delay: 0.45,
+    },
+    omega: { // Omega: the biggest finale yet
+      kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', taiko: 'x.....x.x.....x.',
+      bass: 'octave8', bassWave: 'sawtooth', bassFilter: 1000,
+      pad: true, padWave: 'sawtooth',
+      arp: { wave: 'sawtooth', octave: 2, every: 1, vol: 0.03, filter: 3200 },
+      lead: { wave: 'sawtooth', octave: 1, density: 0.5, len: 1.4, vol: 0.07, filter: 2800 },
+      delay: 0.3,
+    },
+  });
   const LEVEL_STYLE = {
     1: 'rock', 2: 'folk', 3: 'heavy', 4: 'industrial', 5: 'funk', 6: 'crystal', 7: 'ethereal',
     8: 'synthwave', 9: 'dark', 10: 'techno', 11: 'clockwork', 12: 'epic', 13: 'chip', 14: 'cosmic',
+    15: 'underwater', 16: 'candy', 17: 'volcano', 18: 'ice', 19: 'haunted', 20: 'factory', 21: 'jungle',
+    22: 'storm', 23: 'dream', 24: 'omega',
   };
   const hit = (pattern, i) => !!pattern && pattern[i % 16] === 'x';
 
