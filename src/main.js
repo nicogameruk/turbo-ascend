@@ -234,6 +234,30 @@ let stats = getStats(progress.levels, progress.best);
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let repairT = 0; // Auto Repair timer
+// 3, 2, 1, GO! before a round starts and after unpausing. The game waits during it.
+let countdownT = 0;
+let countdownTo = 'flying';
+let countdownShown = 0;
+function startCountdown(to) {
+  countdownTo = to;
+  state = 'countdown';
+  countdownT = 3;
+  countdownShown = 0;
+}
+function updateCountdown(dt) {
+  countdownT -= dt;
+  const n = Math.ceil(countdownT);
+  if (n > 0 && n !== countdownShown) {
+    countdownShown = n;
+    hud.countdown(String(n), LEVEL_THEMES[level.n]);
+    audio.play('count');
+  }
+  if (countdownT <= 0) {
+    hud.countdown('GO!', LEVEL_THEMES[level.n]);
+    audio.play('go');
+    state = countdownTo;
+  }
+}
 let goal = 20; // material needed this run (Portal Key lowers it)
 let streak = 0; // Streak Bonus: pieces grabbed in a row
 let lastPickup = 0;
@@ -334,7 +358,8 @@ function startRun() {
   enemies.reset(ctx());
   audio.music(level);
   hud.showHelp();
-  hud.banner(`LEVEL ${level.n} · ${level.name.toUpperCase()} — collect ${goal} ${level.material.toLowerCase()}`, 3.5);
+  hud.banner(`LEVEL ${level.n} · ${level.name.toUpperCase()} — collect ${goal} ${level.material.toLowerCase()}`, 4.5);
+  startCountdown('flying');
 }
 
 // Hurt the player. Returns true if the hit was used up (landed or blocked by the shield).
@@ -653,7 +678,8 @@ function leaveGarage() {
 }
 
 function pause() {
-  pausedFrom = state;
+  pausedFrom = state === 'countdown' ? countdownTo : state;
+  hud.clearCountdown();
   state = 'paused';
   audio.setEngine(false);
   menus.showPause();
@@ -662,7 +688,9 @@ function pause() {
 function resume() {
   if (state !== 'paused') return;
   menus.hide();
-  state = pausedFrom;
+  // Back into the action with a countdown (not needed on the level-complete screen).
+  if (pausedFrom === 'flying' || pausedFrom === 'boss') startCountdown(pausedFrom);
+  else state = pausedFrom;
 }
 
 function update(dt, time) {
@@ -889,7 +917,7 @@ function frame() {
 
   if (menus.open) menus.handleKeys(input);
   else if (input.wasPressed('Escape')) {
-    if (PLAYING.includes(state)) pause();
+    if (PLAYING.includes(state) || state === 'countdown') pause();
     else if (state === 'over') showTitle();
   }
   if (input.wasPressed('KeyM') && (PLAYING.includes(state) || state === 'menu')) audio.horn(progress.equipped.horn);
@@ -904,6 +932,7 @@ function frame() {
   }
 
   if (PLAYING.includes(state)) update(dt, time);
+  else if (state === 'countdown') updateCountdown(dt);
   else if (state === 'menu') updateMenu(dt, time);
   else if (state === 'over') { booms.update(dt); sparks.update(dt); }
   else if (state === 'ending') updateMenu(dt, time);
@@ -912,10 +941,11 @@ function frame() {
   toppers.update(dt);
   const abilityId = equipped();
   const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult };
-  touch.setVisible(state === 'flying' || state === 'boss');
+  const shownState = state === 'countdown' ? countdownTo : state;
+  touch.setVisible(shownState === 'flying' || shownState === 'boss');
   touch.setAbility(abilityInfo);
   hud.update(dt, {
-    state,
+    state: shownState,
     level,
     fuel: car.fuel,
     fuelScale: stats.fuelBarScale,
@@ -943,7 +973,7 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && PLAYING.includes(state)) pause();
+  if (document.hidden && (PLAYING.includes(state) || state === 'countdown')) pause();
 });
 
 car.applyUpgrades(progress.levels);
@@ -976,7 +1006,8 @@ if (import.meta.env.DEV) {
     set godMode(v) { devGodMode = v; },
     resume,
     // Jump to a level (unlocking everything up to it).
-    play(n) { progress.best = Math.max(progress.best, n); progress.level = n; garage.close(); menus.hide(); startRun(); },
+    play(n) { progress.best = Math.max(progress.best, n); progress.level = n; garage.close(); menus.hide(); startRun(); state = 'flying'; },
+    get countdown() { return { state, countdownT, countdownTo }; },
     // Equip and use an ability (unlocking/buying it for the test).
     useAbility(id) {
       if (ABILITIES[id].shop && !progress.ownedAbilities.includes(id)) progress.ownedAbilities.push(id);

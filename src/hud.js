@@ -23,6 +23,7 @@ export function createHud() {
   const help = $('help');
   const actions = $('actions');
   const ready = $('ready');
+  const countEl = $('countdown');
   let readyTimer = 0;
   const ability = $('ability');
   const abilityName = $('ability-name');
@@ -57,6 +58,17 @@ export function createHud() {
       }
       actions.style.display = list.length ? 'flex' : 'none';
     },
+
+    // Big countdown number (or "GO!") in the middle, in the level's colour.
+    countdown(text, theme) {
+      countEl.textContent = text;
+      if (theme) countEl.style.setProperty('--accent', theme.accent);
+      countEl.classList.toggle('go', text === 'GO!');
+      countEl.classList.remove('pop');
+      void countEl.offsetWidth; // restart the animation
+      countEl.classList.add('pop');
+    },
+    clearCountdown() { countEl.classList.remove('pop'); },
 
     // Pop-up at the top: your ability has recharged.
     // theme: the level's { accent, glow, icon } (see LEVEL_THEMES in levels.js).

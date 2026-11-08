@@ -41,6 +41,16 @@
       @keyframes ready-rainbow { to { filter: hue-rotate(360deg); } }
       #ready.show { transform: translate(-50%, 0); opacity: 1; }
       body.boss-fight #ready { top: 64px; }
+      /* 3, 2, 1, GO! in the middle of the screen */
+      #countdown { --accent: #ffcf8a; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%) scale(1); font-size: clamp(90px, 22vw, 180px); font-weight: 900; color: var(--accent); text-shadow: 0 0 30px color-mix(in srgb, var(--accent) 70%, transparent), 0 6px 14px rgba(0,0,0,.5); opacity: 0; pointer-events: none; z-index: 1; }
+      #countdown.pop { animation: count-pop .9s ease-out forwards; }
+      #countdown.go { font-size: clamp(70px, 16vw, 140px); }
+      @keyframes count-pop {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        75% { opacity: 1; transform: translate(-50%, -50%) scale(.92); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(.7); }
+      }
       #warning { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 18px; color: #ff5a5a; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; }
       #overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(5,10,25,.55); font-size: 42px; font-weight: 800; text-align: center; }
       #overlay .ending { font-size: clamp(30px, 6vw, 56px); background: linear-gradient(180deg, #fff6c8, #ffb347, #c86aff); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -176,6 +186,7 @@
       </div>
       <div id="banner"></div>
       <div id="ready"></div>
+      <div id="countdown"></div>
       <div id="warning">ENEMY CLOSING IN</div>
       <div id="help">WASD / Arrows: steer &nbsp;·&nbsp; Space: turbo &nbsp;·&nbsp; B: ability &nbsp;·&nbsp; M: horn &nbsp;·&nbsp; Esc: pause</div>
       <div id="ability">
