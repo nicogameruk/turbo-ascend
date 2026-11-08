@@ -296,7 +296,13 @@ sendPoints(progress, save); // anything left over from last time
 let state = 'menu';
 let pausedFrom = 'flying';
 let level = getLevel(progress.level);
-let stats = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
+// Car stats: upgrades, then the body shape's bonus, then the pet's.
+const makeStats = () => {
+  const s = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
+  if (progress.equipped.pet === 'toucan') s.refill *= 1.25;
+  return s;
+};
+let stats = makeStats();
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let repairT = 0; // Auto Repair timer
@@ -388,7 +394,7 @@ function showTitle() {
 function startRun() {
   progress.started = true;
   level = getLevel(progress.level);
-  stats = applyBodyPerk(getStats(progress.levels, progress.best), progress.equipped.body);
+  stats = makeStats();
   setScene(level);
   boss.setPlayer(stats);
   boss.configure(level);
@@ -425,6 +431,7 @@ function startRun() {
   car.setDash(false);
   trails.reset(car.group.position);
   shieldT = stats.startShield;
+  nitroT = stats.poleBoost; // Pole Position: launch off the line
   state = 'flying';
   enemies.reset(ctx());
   audio.music(level);
@@ -540,7 +547,7 @@ const hazardCtx = {
 
 const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
-  nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap',
+  nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap', rainmaster: 'whoosh',
   tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
   helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready', scribble: 'whoosh',
 };
@@ -662,6 +669,13 @@ function useAbility() {
     hud.banner('+1 HEART', 1.2);
   }
   if (id === 'doubleup') { doubleT = dur; hud.banner('DOUBLE MATERIAL!', 1.5); }
+  if (id === 'rainmaster') {
+    // Like a legend in the rain: the world slows down, you don't, and close shots wash away.
+    slowT = Math.max(slowT, dur);
+    const washed = shots.clearNear(pos, 14) + boss.clearNear(pos, 14);
+    booms.spawn(pos, 0x7ab8ff, 3);
+    hud.banner(`🌧️ RAIN MASTER!${washed ? ` ${washed} shots washed away` : ''}`, 1.5);
+  }
   if (id === 'missiles') {
     const targets = enemies.targets(pos, state === 'boss' ? 3 : 4);
     if (state === 'boss' && boss.hp > 0) {

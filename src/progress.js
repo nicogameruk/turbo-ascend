@@ -14,6 +14,7 @@ export const UPGRADES = [
   { id: 'regen', group: 'Car', name: 'Fuel Recycler', desc: 'Turbo fuel refills 30% faster each', costs: [10, 20, 34] },
   { id: 'ram', group: 'Car', name: 'Battering Ram', desc: 'While boosting, crash through enemies without getting hurt', costs: [60] },
   { id: 'cruise', group: 'Car', name: 'Cruise Engine', desc: 'Fly a bit faster all the time, so chasers catch you slower', costs: [18, 36] },
+  { id: 'pole', group: 'Car', name: 'Pole Position', desc: 'A perfect start: free turbo burst for 2 / 3.5 / 5 s at the start of every level', costs: [18, 36, 60] },
   // Survival
   { id: 'recovery', group: 'Survival', name: 'Shock Absorbers', desc: 'Longer safe time after you get hit', costs: [12, 26] },
   { id: 'autorepair', group: 'Survival', name: 'Auto Repair', desc: 'Fixes 1 heart every 60 / 45 / 30 s', costs: [30, 50, 80] },
@@ -179,5 +180,6 @@ export function getStats(levels, best = 1) {
     durationMult: 1 + 0.2 * levels.amplifier,
     coreEvery: 2 * (1 - 0.2 * levels.corerain),
     bountyMult: 1 + 0.25 * levels.bounty,
+    poleBoost: [0, 2, 3.5, 5][levels.pole ?? 0],
   };
 }

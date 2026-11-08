@@ -172,6 +172,13 @@ export function createAudio() {
     train: () => { [0, 0.45].forEach((at) => { tone(220, { type: 'sawtooth', at, dur: 0.4, vol: 0.18 }); tone(277, { type: 'sawtooth', at, dur: 0.4, vol: 0.15 }); tone(330, { type: 'sawtooth', at, dur: 0.4, vol: 0.12 }); }); },
     alarm: () => { for (let i = 0; i < 4; i++) tone(i % 2 ? 660 : 880, { type: 'square', at: i * 0.12, dur: 0.11, vol: 0.12 }); },
     chiptune: () => { [0, 4, 7, 11, 12, 7, 12, 16].forEach((st, i) => tone(mtof(72 + st), { type: 'square', at: i * 0.06, dur: 0.07, vol: 0.1 })); },
+    // A short celebration samba: a bouncy tune over a tamborim-style click rhythm.
+    samba: () => {
+      const beat = 0.09;
+      [[0, 0], [1, 4], [3, 7], [4, 9], [6, 7], [7, 12], [9, 9], [10, 12], [12, 16]].forEach(([at, st]) =>
+        tone(mtof(72 + st), { type: 'square', at: at * beat, dur: 0.1, vol: 0.1 }));
+      [0, 2, 3, 5, 6, 8, 10, 11, 12].forEach((at) => noise({ at: at * beat, dur: 0.04, vol: 0.18, freq: 3500, type: 'bandpass' }));
+    },
     fanfare: () => { [0, 4, 7, 12].forEach((s, i) => tone(mtof(67 + s), { type: 'square', at: i * 0.1, dur: i === 3 ? 0.4 : 0.12, vol: 0.14 })); },
   };
 

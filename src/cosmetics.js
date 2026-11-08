@@ -34,6 +34,7 @@ export const SHOP = {
     { id: 'neon', name: 'Neon Green', cost: 100, color: 0x39ff14, glow: 0x1a8a0a },
     { id: 'chrome', name: 'Chrome', cost: 120, color: 0xdfe4ea, metal: true },
     { id: 'goldchrome', name: 'Gold Chrome', cost: 150, color: 0xffcc44, metal: true },
+    { id: 'champion', name: 'Champion Yellow', cost: 110, color: 0xffd21a, glow: 0x5a4000 },
   ],
   trail: [
     { id: 'blue', name: 'Ice Blue', cost: 0, color: 0x5fe4ff },
@@ -55,6 +56,7 @@ export const SHOP = {
     { id: 'purple', name: 'Purple Glow', cost: 30, color: 0x9a5aff },
     { id: 'orange', name: 'Orange Glow', cost: 30, color: 0xff8a1a },
     { id: 'gold', name: 'Gold Glow', cost: 50, color: 0xffd040 },
+    { id: 'brazil', name: 'Brazil Green', cost: 30, color: 0x1adc5a },
     { id: 'rainbow', name: 'Rainbow Glow', cost: 100, color: null },
   ],
   topper: [
@@ -82,6 +84,7 @@ export const SHOP = {
     { id: 'alarm', name: 'Alarm', cost: 60 },
     { id: 'chiptune', name: 'Chiptune', cost: 70 },
     { id: 'fanfare', name: 'Fanfare', cost: 80 },
+    { id: 'samba', name: 'Victory Samba', cost: 70 },
   ],
   // Pets fly next to your car. Each one also helps a little.
   pet: [
@@ -96,6 +99,7 @@ export const SHOP = {
     { id: 'dragon', name: 'Baby Dragon', cost: 160, icon: '🐉', desc: 'Spits a fireball at an enemy every 7 s' },
     { id: 'star', name: 'Star Sprite', cost: 200, icon: '⭐', desc: 'Your ability recharges 25% faster' },
     { id: 'phoenix', name: 'Phoenix', cost: 260, icon: '🔥', desc: 'Once a level, brings you back with 1 heart' },
+    { id: 'toucan', name: 'Toucan', cost: 110, icon: '🦜', desc: 'Brazilian bird buddy: turbo fuel refills 25% faster' },
   ],
 };
 

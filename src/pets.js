@@ -126,6 +126,23 @@ const BUILDERS = {
     part(g, new THREE.SphereGeometry(0.45, 14, 10), glow(0xfff0a0, 0.18));
     eyes(g, 0.02, -0.1, 0.07, 0.04);
   },
+  // Toucan: black feathers, white throat, and a huge orange beak.
+  toucan(g, a) {
+    const black = std(0x16161c, 0.6);
+    part(g, new THREE.SphereGeometry(0.26, 18, 14), black).scale.set(0.95, 1.1, 1.2);
+    part(g, new THREE.SphereGeometry(0.18, 16, 12), std(0xfff6dc, 0.7), 0, 0.12, -0.16).scale.set(1, 1, 0.6); // white throat
+    part(g, new THREE.SphereGeometry(0.17, 16, 12), black, 0, 0.3, -0.12);
+    const beak = part(g, new THREE.ConeGeometry(0.11, 0.55, 14), std(0xff8a1a, 0.35), 0, 0.27, -0.52);
+    beak.rotation.x = -Math.PI / 2 - 0.15;
+    beak.scale.set(1, 1, 1.5);
+    part(g, new THREE.SphereGeometry(0.05, 10, 8), std(0xd81e2a, 0.4), 0, 0.22, -0.78); // red beak tip
+    for (const x of [-0.1, 0.1]) {
+      part(g, new THREE.TorusGeometry(0.05, 0.015, 6, 14), std(0x3a8aff, 0.4), x, 0.34, -0.22).rotation.y = x > 0 ? 0.6 : -0.6; // blue eye ring
+      part(g, new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }), x, 0.34, -0.25);
+    }
+    part(g, new THREE.ConeGeometry(0.12, 0.35, 8), black, 0, 0.0, 0.38).rotation.x = Math.PI / 2 + 0.5; // tail
+    a.wings = wingPair(g, black, 0.1, 0.05, 0.45);
+  },
   phoenix(g, a) {
     const red = std(0xff4a1a, 0.4, 0, { emissive: 0xaa2000, emissiveIntensity: 0.6 });
     part(g, new THREE.SphereGeometry(0.22, 14, 10), red).scale.set(1, 0.9, 1.4);
