@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeVertices, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { roundBox } from './round.js';
 
 const FAR_Z = -340; // where scenery respawns
@@ -143,6 +143,82 @@ function createLandmarks(scene) {
     g.add(cone, lava, plume);
     g.position.set(120, -30, -650);
   });
+  // Doodle Land: the notebook is lying on a giant office desk.
+  add('desk', (g) => {
+    const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, fog: false, ...extra });
+    const put = (geo, m, x, y, z) => { const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); g.add(mesh); return mesh; };
+    const FLOOR = -30; // the paper / desk surface
+
+    // Computer monitor showing a spreadsheet
+    const sheet = canvasTexture(256, (x) => {
+      x.fillStyle = '#f4f8ff'; x.fillRect(0, 0, 256, 256);
+      x.fillStyle = '#2a7a4a'; x.fillRect(0, 0, 256, 26); // green header bar
+      x.strokeStyle = '#b8c8d8'; x.lineWidth = 2;
+      for (let i = 0; i <= 256; i += 32) { x.beginPath(); x.moveTo(i, 26); x.lineTo(i, 256); x.stroke(); }
+      for (let j = 26; j <= 256; j += 20) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); }
+      x.fillStyle = '#4a6a8a';
+      for (let r = 0; r < 11; r++) for (let c = 0; c < 8; c++) if ((r * 7 + c * 3) % 4) x.fillRect(c * 32 + 5, 30 + r * 20, 8 + ((r + c) % 3) * 6, 10);
+      x.fillStyle = '#ffd040'; x.fillRect(64, 26 + 20 * 4, 64, 20); // a highlighted cell
+    });
+    put(roundBox(280, 175, 16, 8), mat(0x2a2e36, { roughness: 0.3, metalness: 0.4 }), -230, FLOOR + 150, -660);
+    put(new THREE.PlaneGeometry(256, 156), new THREE.MeshBasicMaterial({ map: sheet, fog: false }), -230, FLOOR + 150, -651);
+    put(roundBox(30, 80, 30, 6), mat(0x2a2e36), -230, FLOOR + 40, -670);
+    put(roundBox(130, 8, 70, 4), mat(0x2a2e36), -230, FLOOR + 4, -670);
+
+    // Coffee mug, with coffee in it
+    const mug = mat(0xffffff, { roughness: 0.3 });
+    put(new THREE.CylinderGeometry(55, 50, 120, 40), mug, 240, FLOOR + 60, -520);
+    put(new THREE.CircleGeometry(50, 40), mat(0x5a3418, { roughness: 0.2 }), 240, FLOOR + 112, -520).rotation.x = -Math.PI / 2;
+    put(new THREE.TorusGeometry(30, 9, 12, 28), mug, 300, FLOOR + 65, -520).rotation.y = Math.PI / 2 - 0.4;
+    put(new THREE.CylinderGeometry(56, 51, 18, 40), mat(0xd83a3a), 240, FLOOR + 75, -520); // red stripe
+
+    // Desk lamp
+    const lampMat = mat(0x3a7ae8, { roughness: 0.35, metalness: 0.3 });
+    put(new THREE.CylinderGeometry(35, 40, 10, 32), lampMat, -300, FLOOR + 5, -430);
+    const arm1 = put(new THREE.CylinderGeometry(4, 4, 110, 12), lampMat, -300, FLOOR + 55, -430);
+    arm1.rotation.z = 0.3;
+    const arm2 = put(new THREE.CylinderGeometry(4, 4, 90, 12), lampMat, -280, FLOOR + 130, -430);
+    arm2.rotation.z = -0.9;
+    const shade = put(new THREE.ConeGeometry(30, 45, 28, 1, true), lampMat, -240, FLOOR + 150, -430);
+    shade.rotation.z = -1.2;
+    shade.material = lampMat.clone();
+    shade.material.side = THREE.DoubleSide;
+    put(new THREE.SphereGeometry(12, 16, 10), new THREE.MeshBasicMaterial({ color: 0xfff2b0, fog: false }), -228, FLOOR + 140, -430);
+
+    // Stapler
+    const red = mat(0xc8202a, { roughness: 0.35 });
+    put(roundBox(110, 18, 34, 8), mat(0x2a2a30), -170, FLOOR + 9, -330);
+    const top = put(roundBox(115, 18, 30, 8), red, -168, FLOOR + 30, -330);
+    top.rotation.z = 0.06;
+
+    // Sticky notes (a little stack) and a loose one
+    ['#ffe45a', '#ff9ad0', '#8ae8ff'].forEach((c, i) => {
+      const note = put(roundBox(70, 3, 70, 1), mat(new THREE.Color(c).getHex(), { roughness: 0.9 }), 170 + i * 4, FLOOR + 2 + i * 3, -360 - i * 2);
+      note.rotation.y = 0.2 + i * 0.25;
+    });
+    put(roundBox(60, 2, 60, 1), mat(0xffe45a, { roughness: 0.9 }), -90, FLOOR + 1, -250).rotation.y = -0.4;
+
+    // Paper clip lying flat
+    const clip = put(new THREE.TorusGeometry(14, 2.5, 8, 32), mat(0xc8ccd4, { roughness: 0.2, metalness: 1 }), 100, FLOOR + 3, -280);
+    clip.rotation.x = Math.PI / 2;
+    clip.scale.set(1, 2.6, 1);
+    const clip2 = put(new THREE.TorusGeometry(9, 2.5, 8, 32), clip.material, 100, FLOOR + 3, -282);
+    clip2.rotation.x = Math.PI / 2;
+    clip2.scale.set(1, 2.6, 1);
+
+    // Wall clock high up in the distance
+    put(new THREE.CylinderGeometry(70, 70, 10, 48), mat(0xffffff), 30, 170, -720).rotation.x = Math.PI / 2;
+    put(new THREE.TorusGeometry(70, 6, 10, 48), mat(0x2a2e36), 30, 170, -715);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      put(roundBox(3, 12, 2, 1), mat(0x2a2e36), 30 + Math.sin(a) * 58, 170 + Math.cos(a) * 58, -712).rotation.z = -a;
+    }
+    const hand1 = put(roundBox(5, 50, 3, 2), mat(0x2a2e36), 30, 192, -711);
+    hand1.geometry.translate(0, 0, 0);
+    const hand2 = put(roundBox(4, 38, 3, 2), mat(0xd83a3a), 45, 175, -711);
+    hand2.rotation.z = -1.2;
+  });
+
   add('moon', (g) => {
     const moon = new THREE.Mesh(new THREE.SphereGeometry(55, 40, 24), new THREE.MeshBasicMaterial({ color: 0xf0f4ff, fog: false }));
     const halo = new THREE.Mesh(new THREE.CircleGeometry(95, 48), glow(0xc8d8ff, 0.18));
@@ -234,6 +310,13 @@ const SHAPES = {
   crystal: new THREE.OctahedronGeometry(0.7, 0),
   pillar: new THREE.CylinderGeometry(0.3, 0.34, 1, 14),
   spire: new THREE.ConeGeometry(0.5, 1, 12),
+  pencil: (() => {
+    const body = new THREE.CylinderGeometry(0.3, 0.3, 0.82, 6);
+    body.translate(0, -0.09, 0);
+    const tip = new THREE.ConeGeometry(0.3, 0.18, 6);
+    tip.translate(0, 0.41, 0);
+    return mergeGeometries([body, tip]);
+  })(),
 };
 
 // opts.anisotropy: keeps the ground texture sharp far into the distance.
@@ -356,7 +439,7 @@ export function createWorld(scene, hemi, opts = {}) {
       }
       stars.visible = !!level.space || level.n === 10;
       // No sun at night, in space, or where something else fills the sky.
-      sunSprite.visible = !level.space && !level.landmark && ![9, 10, 19, 22].includes(level.n);
+      sunSprite.visible = !level.space && !level.landmark && ![9, 10, 19, 22, 25].includes(level.n);
       sunSprite.material.color.set(level.sky2?.[1] ?? '#fff2d8').lerp(new THREE.Color(0xffffff), 0.6);
       landmarks.show(level.landmark);
 
@@ -372,7 +455,7 @@ export function createWorld(scene, hemi, opts = {}) {
       propMat.needsUpdate = true;
       for (const { obj, place } of props) {
         obj.geometry = SHAPES[s.shape];
-        obj.userData.thin = s.shape === 'tree' || s.shape === 'pillar' || s.shape === 'tower' || s.shape === 'spire';
+        obj.userData.thin = ['tree', 'pillar', 'tower', 'spire', 'pencil'].includes(s.shape);
         obj.userData.float = !!s.float;
         const z = obj.position.z;
         place(obj);

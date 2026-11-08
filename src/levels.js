@@ -340,11 +340,11 @@ export const LEVELS = [
   },
   // ---- A cartoon world drawn in a sketchbook; your car becomes a pencil ----
   {
-    n: 26, name: 'Doodle Land', material: 'Crayons', goal: 52,
+    n: 26, name: 'Doodle Land', material: 'Crayons', goal: 52, landmark: 'desk',
     cartoon: true, carShape: 'pencil',
     sky: ['#fffdf5', '#f4efe2'], sky2: ['#fff4d8', '#fde8e8'], fog: 0xf8f4ea, hemi: [0xffffff, 0xd8d0c0],
     ground: { style: 'grid', base: '#fbfaf3', line: '#9ab8e8', line2: '#f0a0a0', noGlow: true },
-    scenery: { shape: 'tree', color: 0x4ad86a },
+    scenery: { shape: 'pencil', color: 0xffc81a },
     cloud: { color: 0xffffff, emissive: 0xd8e4f0 },
     enemies: { chasers: 0, waves: [{ type: 'eraser', every: [1.8, 3], max: 4 }, { type: 'bee', every: [7, 10], max: 1 }, { type: 'ufo', every: [9, 12], max: 1 }] },
     hazards: [{ type: 'lava', every: [8, 11] }, { type: 'meteor', every: [7, 10] }],
