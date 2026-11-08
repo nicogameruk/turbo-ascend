@@ -43,9 +43,7 @@ export async function sendPoints(progress, save) {
   try {
     while (progress.pendingPoints > 0) {
       const chunk = Math.min(20000, progress.pendingPoints);
-      const body = { p_player: progress.playerId, p_name: progress.name, p_points: chunk };
-      if (progress.ownerCode) body.p_code = progress.ownerCode; // owner's typed name
-      await rpc('add_score', body);
+      await rpc('add_score', { p_player: progress.playerId, p_name: progress.name, p_points: chunk });
       progress.pendingPoints -= chunk;
       save();
     }
@@ -53,25 +51,6 @@ export async function sendPoints(progress, save) {
     // Offline or the server said no: try again after the next run.
   } finally {
     sending = false;
-  }
-}
-
-// Owner names: the database checks the secret code (the game never knows the right one).
-export const OWNER_NAME_RULE = /^[A-Za-z0-9 _.!-]{1,20}$/;
-export async function checkOwnerCode(code) {
-  if (!leaderboardOn()) return false;
-  try { return (await rpc('check_owner', { p_code: code })) === true; } catch { return false; }
-}
-
-// Change the name on your existing scores (only allowed racers, with the owner code).
-// Returns true if the database agreed.
-export async function renamePlayer(playerId, oldName, newName, code) {
-  if (!leaderboardOn() || !playerId) return false;
-  try {
-    await rpc('rename_player', { p_player: playerId, p_old_name: oldName, p_name: newName, p_code: code });
-    return true;
-  } catch {
-    return false;
   }
 }
 
