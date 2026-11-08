@@ -13,11 +13,15 @@ export const UPGRADES = [
   { id: 'booster', group: 'Car', name: 'Booster Engine', desc: 'Faster turbo', costs: [10, 20, 36, 52] },
   { id: 'regen', group: 'Car', name: 'Fuel Recycler', desc: 'Turbo fuel refills 30% faster each', costs: [10, 20, 34] },
   { id: 'ram', group: 'Car', name: 'Battering Ram', desc: 'While boosting, crash through enemies without getting hurt', costs: [60] },
+  { id: 'cruise', group: 'Car', name: 'Cruise Engine', desc: 'Fly a bit faster all the time, so chasers catch you slower', costs: [18, 36] },
   // Survival
   { id: 'recovery', group: 'Survival', name: 'Shock Absorbers', desc: 'Longer safe time after you get hit', costs: [12, 26] },
   { id: 'autorepair', group: 'Survival', name: 'Auto Repair', desc: 'Fixes 1 heart every 60 / 45 / 30 s', costs: [30, 50, 80] },
   { id: 'startshield', group: 'Survival', name: 'Launch Shield', desc: 'Start every level with a shield for 4 / 7 s', costs: [16, 32] },
   { id: 'lucky', group: 'Survival', name: 'Lucky Charm', desc: '6% chance per level to dodge a hit', costs: [20, 36, 56] },
+  { id: 'emergency', group: 'Survival', name: 'Emergency Fuel', desc: 'Getting hit refills 40% / 80% of your turbo fuel', costs: [12, 24] },
+  { id: 'emp', group: 'Survival', name: 'EMP Burst', desc: 'Getting hit blasts away enemies close to you', costs: [40] },
+  { id: 'secondwind', group: 'Survival', name: 'Second Wind', desc: 'Once a level, a 3 / 5 s shield when you\'re down to 1 heart', costs: [22, 40] },
   // Collecting
   { id: 'coil', group: 'Collecting', name: 'Magnet Coil', desc: 'Pulls material in from further away', costs: [12, 22, 36] },
   { id: 'scoop', group: 'Collecting', name: 'Wide Scoop', desc: 'Grab material without touching it exactly', costs: [8, 16, 28] },
@@ -25,11 +29,17 @@ export const UPGRADES = [
   { id: 'headstart', group: 'Collecting', name: 'Head Start', desc: 'Start each level with 3 / 6 / 9 material', costs: [15, 30, 50] },
   { id: 'salvage', group: 'Collecting', name: 'Salvage Kit', desc: '+10% material each when you beat a level', costs: [20, 40, 65] },
   { id: 'coins', group: 'Collecting', name: 'Coin Collector', desc: '+15% coins each', costs: [15, 30, 50] },
+  { id: 'portalkey', group: 'Collecting', name: 'Portal Key', desc: 'The portal opens with 10% less material each', costs: [25, 50] },
+  { id: 'streak', group: 'Collecting', name: 'Streak Bonus', desc: 'Every 5 pieces grabbed in a row gives +1 / +2 extra', costs: [16, 32] },
+  { id: 'bargain', group: 'Collecting', name: 'Bargain Hunter', desc: 'Shop items cost 10% fewer coins each', costs: [30, 60] },
   // Abilities and bosses
   { id: 'capacitor', group: 'Abilities & Bosses', name: 'Ability Capacitor', desc: 'Your ability recharges 10% faster each', costs: [14, 28, 46] },
   { id: 'coremagnet', group: 'Abilities & Bosses', name: 'Core Catcher', desc: 'Catch blue cores from further away', costs: [10, 22] },
   { id: 'powerbolts', group: 'Abilities & Bosses', name: 'Power Bolts', desc: '25% chance each for a bolt to do double damage', costs: [20, 40] },
   { id: 'bossbreaker', group: 'Abilities & Bosses', name: 'Boss Breaker', desc: 'Bosses start with 10% less health each', costs: [25, 50] },
+  { id: 'amplifier', group: 'Abilities & Bosses', name: 'Ability Amplifier', desc: 'Your ability lasts 20% longer each', costs: [16, 32] },
+  { id: 'corerain', group: 'Abilities & Bosses', name: 'Core Rain', desc: 'Bosses drop blue cores 20% more often each', costs: [18, 36] },
+  { id: 'bounty', group: 'Abilities & Bosses', name: 'Bounty Hunter', desc: '+25% boss reward each', costs: [20, 40] },
 ];
 
 // Touch-screen controls by default on phones and tablets.
@@ -86,6 +96,9 @@ export function restoreProgress(progress, saved) {
   return progress;
 }
 
+// Shop price in coins after the Bargain Hunter discount.
+export const price = (progress, cost) => Math.ceil(cost * (1 - 0.1 * (progress.levels.bargain ?? 0)));
+
 // Cost of the next level of an upgrade, or null when it's maxed out.
 export function nextCost(progress, up) {
   const lvl = progress.levels[up.id];
@@ -104,8 +117,8 @@ export function buy(progress, up) {
 export function buyOrEquip(progress, kind, item) {
   const owned = progress.owned[kind].includes(item.id);
   if (!owned) {
-    if (progress.coins < item.cost) return false;
-    progress.coins -= item.cost;
+    if (progress.coins < price(progress, item.cost)) return false;
+    progress.coins -= price(progress, item.cost);
     progress.owned[kind].push(item.id);
   }
   progress.equipped[kind] = item.id;
@@ -117,8 +130,8 @@ export function buyOrEquipAbility(progress, id) {
   const a = ABILITIES[id];
   if (!a?.active) return false;
   if (a.shop && !progress.ownedAbilities.includes(id)) {
-    if (progress.coins < a.cost) return false;
-    progress.coins -= a.cost;
+    if (progress.coins < price(progress, a.cost)) return false;
+    progress.coins -= price(progress, a.cost);
     progress.ownedAbilities.push(id);
   }
   if (!availableAbilities(progress).includes(id)) return false;
@@ -150,5 +163,14 @@ export function getStats(levels, best = 1) {
     coreRadius: 2 + 0.7 * levels.coremagnet,
     powerBolt: 0.25 * levels.powerbolts,
     bossHpMult: 1 - 0.1 * levels.bossbreaker,
+    cruise: 4 * levels.cruise,
+    emergencyFuel: 0.4 * levels.emergency,
+    emp: levels.emp > 0,
+    secondWind: [0, 3, 5][levels.secondwind],
+    goalMult: 1 - 0.1 * levels.portalkey,
+    streakBonus: levels.streak,
+    durationMult: 1 + 0.2 * levels.amplifier,
+    coreEvery: 2 * (1 - 0.2 * levels.corerain),
+    bountyMult: 1 + 0.25 * levels.bounty,
   };
 }

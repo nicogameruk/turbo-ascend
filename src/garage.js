@@ -1,4 +1,4 @@
-import { UPGRADES, nextCost, buy, buyOrEquip, buyOrEquipAbility } from './progress.js';
+import { UPGRADES, nextCost, buy, buyOrEquip, buyOrEquipAbility, price } from './progress.js';
 import { LEVELS } from './levels.js';
 import { ABILITIES, unlocked, availableAbilities } from './abilities.js';
 import { SHOP, SHOP_TABS } from './cosmetics.js';
@@ -115,9 +115,9 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
         const a = ABILITIES[id];
         const owned = have.includes(id);
         const on = progress.ability === id;
-        const right = on ? 'ON' : owned ? 'Use' : `${a.cost} ¢`;
+        const right = on ? 'ON' : owned ? 'Use' : `${price(progress, a.cost)} ¢`;
         const b = button('upgrade shop', `<span class="key">${a.shop ? '¢' : '★'}</span><span class="info"><b>${a.name}</b><small>${a.desc}</small></span><span class="cost">${right}</span>`,
-          () => pickAbility(id), !owned && progress.coins < a.cost);
+          () => pickAbility(id), !owned && progress.coins < price(progress, a.cost));
         b.classList.toggle('on', on);
         list.append(b);
       }
@@ -136,10 +136,10 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
         : item.color === null ? '<span class="swatch rainbow"></span>'
           : item.color === undefined ? '<span class="swatch level"></span>'
             : `<span class="swatch${item.metal ? ' metal' : ''}" style="background:${hex(item.color)}"></span>`);
-      const right = equipped ? 'ON' : owned ? 'Use' : `${item.cost} ¢`;
+      const right = equipped ? 'ON' : owned ? 'Use' : `${price(progress, item.cost)} ¢`;
       const desc = item.desc ? `<small>${item.desc}</small>` : '';
       const b = button('upgrade shop', `<span class="key">${swatch}</span><span class="info"><b>${item.name}</b>${desc}</span><span class="cost">${right}</span>`,
-        () => shopItem(shopKind, item), !owned && progress.coins < item.cost);
+        () => shopItem(shopKind, item), !owned && progress.coins < price(progress, item.cost));
       b.classList.toggle('on', equipped);
       list.append(b);
     }

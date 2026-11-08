@@ -208,6 +208,10 @@ let stats = getStats(progress.levels, progress.best);
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
 let repairT = 0; // Auto Repair timer
+let goal = 20; // material needed this run (Portal Key lowers it)
+let streak = 0; // Streak Bonus: pieces grabbed in a row
+let lastPickup = 0;
+let secondWindUsed = false;
 let invuln = 0, meters = 0, elapsed = 0, runTime = 0, speed = MENU_SPEED, runMat = 0, coinsEarned = 0;
 
 // Abilities: B uses the one equipped in the garage shop (progress.ability).
@@ -281,6 +285,9 @@ function startRun() {
   runTime = 0;
   speed = BASE_SPEED;
   runMat = stats.headStart;
+  goal = Math.max(5, Math.round(level.goal * stats.goalMult));
+  streak = 0;
+  secondWindUsed = false;
   coinsEarned = 0;
   repairT = 0;
   hud.setActions([]);
@@ -297,7 +304,7 @@ function startRun() {
   enemies.reset(ctx());
   audio.music(level);
   hud.showHelp();
-  hud.banner(`LEVEL ${level.n} · ${level.name.toUpperCase()} — collect ${level.goal} ${level.material.toLowerCase()}`, 3.5);
+  hud.banner(`LEVEL ${level.n} · ${level.name.toUpperCase()} — collect ${goal} ${level.material.toLowerCase()}`, 3.5);
 }
 
 // Hurt the player. Returns true if the hit was used up (landed or blocked by the shield).
@@ -345,6 +352,16 @@ function damage() {
   sparks.burst(car.group.position);
   hud.hurt();
   audio.play('hit');
+  if (stats.emergencyFuel) car.fuel = Math.min(1, car.fuel + stats.emergencyFuel);
+  if (stats.emp) {
+    enemies.blast(car.group.position, 18);
+    booms.spawn(car.group.position, 0x7ad8ff, 3);
+  }
+  if (stats.secondWind && health === 1 && !secondWindUsed) {
+    secondWindUsed = true;
+    shieldT = Math.max(shieldT, stats.secondWind);
+    hud.banner('💨 Second Wind! Shield up', 1.5);
+  }
   if (health <= 0) gameOver();
   return true;
 }
@@ -405,7 +422,7 @@ function useAbility() {
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
   if (id === 'repair' && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
   cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult;
-  const dur = abilityDuration(id, progress.best);
+  const dur = abilityDuration(id, progress.best) * stats.durationMult;
   const pos = car.group.position;
   audio.play(ABILITY_SOUNDS[id] ?? id);
   if (id === 'shield') shieldT = dur;
@@ -472,7 +489,7 @@ function win() {
   hazards.hide();
   enemies.hide();
   clearMissiles();
-  const earned = Math.round((runMat + bossBonus(level)) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
+  const earned = Math.round((runMat + bossBonus(level) * stats.bountyMult) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
   coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
   progress.coins += coinsEarned;
@@ -560,7 +577,7 @@ function resume() {
 
 function update(dt, time) {
   car.update(dt, input, time);
-  const target = warpT > 0 ? 220 : nitroT > 0 ? stats.boostSpeed * 1.25 : car.boosting ? stats.boostSpeed : BASE_SPEED;
+  const target = warpT > 0 ? 220 : nitroT > 0 ? stats.boostSpeed * 1.25 : car.boosting ? stats.boostSpeed : BASE_SPEED + stats.cruise;
   speed += (target - speed) * (1 - Math.exp(-3 * dt));
   const boostAmt = Math.min(1, (speed - BASE_SPEED) / (85 - BASE_SPEED));
 
@@ -634,6 +651,15 @@ function update(dt, time) {
     { collect: stats.collect, spawnMult: stats.spawnMult });
   if (got) {
     runMat += got * (doubleT > 0 ? 2 : 1);
+    if (stats.streakBonus) {
+      streak = elapsed - lastPickup < 2.5 ? streak + got : got;
+      lastPickup = elapsed;
+      if (streak >= 5) {
+        streak -= 5;
+        runMat += stats.streakBonus;
+        hud.banner(`STREAK! +${stats.streakBonus}`, 0.8);
+      }
+    }
     hud.pulseMud();
     audio.play('pickup');
   }
@@ -643,13 +669,13 @@ function update(dt, time) {
   if (state === 'over') return;
 
   if (state === 'flying') {
-    world.setSkyProgress((runMat / level.goal) * 0.75);
+    world.setSkyProgress((runMat / goal) * 0.75);
     if (edt > 0) {
       enemies.update(edt, ctx(time));
       shots.update(edt, car.group.position, damage);
     }
     if (state !== 'flying') return;
-    if (runMat >= level.goal && !portal.active) {
+    if (runMat >= goal && !portal.active) {
       portal.open();
       audio.play('portal');
       hud.banner('PORTAL OPEN! Fly through it', 3);
@@ -753,7 +779,7 @@ function frame() {
     health,
     maxHealth: stats.maxHealth,
     runMud: runMat,
-    goal: level.goal,
+    goal,
     meters,
     timeText: formatTime(runTime),
     coinsEarned,

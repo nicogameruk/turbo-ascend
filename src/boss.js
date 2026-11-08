@@ -353,7 +353,7 @@ export function createBoss(scene) {
   let level = 1;
   let maxHp = 6;
   let hp = maxHp;
-  let player = { coreRadius: 2, powerBolt: 0, bossHpMult: 1 }; // from garage upgrades
+  let player = { coreRadius: 2, powerBolt: 0, bossHpMult: 1, coreEvery: 2 }; // from garage upgrades
   let t = 0;
   let entering = false;
   let dying = -1; // < 0: alive; >= 0: seconds since destroyed
@@ -399,7 +399,7 @@ export function createBoss(scene) {
     },
 
     // Garage upgrades that change boss fights. Call before configure().
-    setPlayer(stats) { player = { coreRadius: stats.coreRadius, powerBolt: stats.powerBolt, bossHpMult: stats.bossHpMult }; },
+    setPlayer(stats) { player = { coreRadius: stats.coreRadius, powerBolt: stats.powerBolt, bossHpMult: stats.bossHpMult, coreEvery: stats.coreEvery }; },
 
     clearShots() { shots.forEach((s) => { if (s.kind === 'red') kill(s); }); },
     // Mini UFO pet: zap the boss's red shots near the car. Returns how many.
@@ -569,7 +569,7 @@ export function createBoss(scene) {
 
         coreT -= dt;
         if (coreT <= 0) {
-          coreT = 2.0;
+          coreT = player.coreEvery;
           const target = new THREE.Vector3(rand(-BOUNDS.x, BOUNDS.x), rand(BOUNDS.yMin, BOUNDS.yMax), 0);
           spawnOfKind('blue', p, target, BLUE_SPEED);
         }
