@@ -207,6 +207,7 @@ let level = getLevel(progress.level);
 let stats = getStats(progress.levels, progress.best);
 let health = stats.maxHealth;
 let ending = null; // set after beating the final boss
+let repairT = 0; // Auto Repair timer
 let invuln = 0, meters = 0, elapsed = 0, runTime = 0, speed = MENU_SPEED, runMat = 0, coinsEarned = 0;
 
 // Abilities: B uses the one equipped in the garage shop (progress.ability).
@@ -261,6 +262,7 @@ function startRun() {
   level = getLevel(progress.level);
   stats = getStats(progress.levels, progress.best);
   setScene(level);
+  boss.setPlayer(stats);
   boss.configure(level);
   enemies.setLevel(level);
   hazards.setLevel(level);
@@ -278,8 +280,9 @@ function startRun() {
   elapsed = 0;
   runTime = 0;
   speed = BASE_SPEED;
-  runMat = 0;
+  runMat = stats.headStart;
   coinsEarned = 0;
+  repairT = 0;
   hud.setActions([]);
   clearMissiles();
   petTimer = 0;
@@ -289,6 +292,7 @@ function startRun() {
   for (const id in cooldown) cooldown[id] = 0;
   car.setDash(false);
   trails.reset(car.group.position);
+  shieldT = stats.startShield;
   state = 'flying';
   enemies.reset(ctx());
   audio.music(level);
@@ -307,6 +311,12 @@ function damage() {
     return true;
   }
   if (devGodMode || invuln > 0) return false;
+  if (stats.dodge && Math.random() < stats.dodge) {
+    invuln = 0.6;
+    hud.banner('🍀 Lucky dodge!', 0.8);
+    audio.play('block');
+    return true;
+  }
   if (petIs('ghost') && !petUsed) {
     petUsed = true;
     invuln = 1;
@@ -316,7 +326,7 @@ function damage() {
     return true;
   }
   health -= 1;
-  invuln = INVULN_TIME;
+  invuln = stats.invuln ?? INVULN_TIME;
   if (health <= 0 && petIs('phoenix') && !petUsed) {
     petUsed = true;
     health = 1;
@@ -345,7 +355,7 @@ function gameOver() {
   car.setShield(false, 0);
   booms.spawn(car.group.position, 0xff6a2a, 1.4);
   hud.banner('', 0);
-  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : 1));
+  coinsEarned = Math.round(runCoins(level, meters, false) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
   progress.coins += coinsEarned;
   audio.setEngine(false);
   audio.play('boom');
@@ -372,7 +382,7 @@ function pullCar(from, strength) {
 function ctx(time = 0) {
   return {
     carPos: car.group.position, speed, elapsed, time, diff: Math.min(level.n - 1, 10), shots, hit: damage,
-    pull: pullCar, smash: rainbowT > 0, onKill: () => audio.play('boom'),
+    pull: pullCar, smash: rainbowT > 0 || (stats.ram && car.boosting), onKill: () => audio.play('boom'),
   };
 }
 const hazardCtx = {
@@ -394,7 +404,7 @@ function useAbility() {
   if (!id) { hud.banner('No ability equipped — pick one in the garage shop', 2); return; }
   if ((cooldown[id] ?? 0) > 0) { audio.play('nope'); return; }
   if (id === 'repair' && health >= stats.maxHealth) { audio.play('nope'); hud.banner('Hearts already full', 1); return; }
-  cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1);
+  cooldown[id] = abilityCooldown(id, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult;
   const dur = abilityDuration(id, progress.best);
   const pos = car.group.position;
   audio.play(ABILITY_SOUNDS[id] ?? id);
@@ -462,9 +472,9 @@ function win() {
   hazards.hide();
   enemies.hide();
   clearMissiles();
-  const earned = Math.round((runMat + bossBonus(level)) * (petIs('owl') ? 1.15 : 1));
+  const earned = Math.round((runMat + bossBonus(level)) * (petIs('owl') ? 1.15 : 1) * stats.matMult);
   progress.bank += earned;
-  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1));
+  coinsEarned = Math.round(runCoins(level, meters, true) * (petIs('kitty') ? 1.2 : 1) * stats.coinMult);
   progress.coins += coinsEarned;
   const firstClear = level.n === progress.best && progress.best < LAST_LEVEL;
   if (firstClear) {
@@ -572,7 +582,18 @@ function update(dt, time) {
   nitroT = Math.max(0, nitroT - dt);
   doubleT = Math.max(0, doubleT - dt);
   updateMissiles(dt);
-  if (state === 'flying' || state === 'boss') updatePetPerks(dt);
+  if (state === 'flying' || state === 'boss') {
+    updatePetPerks(dt);
+    if (stats.repairEvery && health < stats.maxHealth) {
+      repairT += dt;
+      if (repairT >= stats.repairEvery) {
+        repairT = 0;
+        health += 1;
+        sparks.burst(car.group.position, 16, 0x8dff9a);
+        hud.banner('🔧 Auto Repair: +1 heart', 1.2);
+      }
+    } else repairT = 0;
+  }
   if (dashT > 0) {
     dashT -= dt;
     if (dashT <= 0) car.setDash(false);
@@ -609,7 +630,8 @@ function update(dt, time) {
   elapsed += dt;
   if (state !== 'victory') runTime += dt;
 
-  const got = materials.update(dt, speed, car.group.position, state === 'flying', time, petIs('puppy') ? Math.max(stats.magnet, 5) : stats.magnet);
+  const got = materials.update(dt, speed, car.group.position, state === 'flying', time, petIs('puppy') ? Math.max(stats.magnet, 5) : stats.magnet,
+    { collect: stats.collect, spawnMult: stats.spawnMult });
   if (got) {
     runMat += got * (doubleT > 0 ? 2 : 1);
     hud.pulseMud();
@@ -720,7 +742,7 @@ function frame() {
   pet.update(dt, car.group.position, time);
   toppers.update(dt);
   const abilityId = equipped();
-  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) };
+  const abilityInfo = abilityId && { ...ABILITIES[abilityId], cooldownLeft: cooldown[abilityId] ?? 0, cooldown: abilityCooldown(abilityId, progress.best) * (petIs('star') ? 0.75 : 1) * stats.cooldownMult };
   touch.setVisible(state === 'flying' || state === 'boss');
   touch.setAbility(abilityInfo);
   hud.update(dt, {

@@ -283,6 +283,7 @@ export function createCar() {
   let emptyLock = false;
   let steerSpeed = 13;
   let fuelDrain = 0.35;
+  let fuelRefill = FUEL_REFILL;
   let flamePower = 1;
   let tier = 1;
   let paintOverride = null; // shop paint colour, or null for the level look
@@ -347,6 +348,7 @@ export function createCar() {
     setStats(stats) {
       steerSpeed = stats.steerSpeed;
       fuelDrain = stats.fuelDrain;
+      fuelRefill = stats.refill ?? FUEL_REFILL;
     },
 
     // Show the parts for each upgrade level.
@@ -399,7 +401,7 @@ export function createCar() {
       car.boosting = input.boost && !emptyLock;
       car.fuel = car.boosting
         ? Math.max(0, car.fuel - fuelDrain * dt)
-        : Math.min(1, car.fuel + FUEL_REFILL * dt);
+        : Math.min(1, car.fuel + fuelRefill * dt);
     },
 
     get tier() { return tier; },

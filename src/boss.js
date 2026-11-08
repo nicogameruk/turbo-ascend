@@ -353,6 +353,7 @@ export function createBoss(scene) {
   let level = 1;
   let maxHp = 6;
   let hp = maxHp;
+  let player = { coreRadius: 2, powerBolt: 0, bossHpMult: 1 }; // from garage upgrades
   let t = 0;
   let entering = false;
   let dying = -1; // < 0: alive; >= 0: seconds since destroyed
@@ -372,7 +373,7 @@ export function createBoss(scene) {
     configure(levelCfg) {
       level = levelCfg.n;
       cfg = levelCfg.boss;
-      maxHp = cfg.hp;
+      maxHp = Math.max(3, Math.round(cfg.hp * player.bossHpMult));
       hullMat.color.setHex(cfg.hull);
       hullMat.metalness = cfg.metal ? 1 : 0.5;
       hullMat.roughness = cfg.metal ? 0.15 : 0.6;
@@ -396,6 +397,9 @@ export function createBoss(scene) {
       spawnBoom(group.position);
       if (hp <= 0) { dying = 0; shots.forEach(kill); bolts.forEach(kill); }
     },
+
+    // Garage upgrades that change boss fights. Call before configure().
+    setPlayer(stats) { player = { coreRadius: stats.coreRadius, powerBolt: stats.powerBolt, bossHpMult: stats.bossHpMult }; },
 
     clearShots() { shots.forEach((s) => { if (s.kind === 'red') kill(s); }); },
     // Mini UFO pet: zap the boss's red shots near the car. Returns how many.
@@ -579,7 +583,7 @@ export function createBoss(scene) {
         s.mesh.rotation.y += dt * 4;
         const d = sp.distanceTo(carPos);
         if (s.kind === 'red' && d < 1.4 && damage()) kill(s);
-        else if (s.kind === 'blue' && d < 2.0) { kill(s); fireBolt(carPos); ev.caught = true; }
+        else if (s.kind === 'blue' && d < player.coreRadius) { kill(s); fireBolt(carPos); ev.caught = true; }
         else if (sp.z > 18) kill(s);
       }
 
@@ -591,7 +595,7 @@ export function createBoss(scene) {
         const dist = tmp.length();
         if (dist < 3 * group.scale.x) {
           kill(b);
-          hp -= 1;
+          hp -= Math.random() < player.powerBolt ? 2 : 1;
           ev.hurt = true;
           hullMat.emissiveIntensity = 1.5;
           spawnBoom(bp);

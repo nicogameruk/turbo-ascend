@@ -4,11 +4,32 @@ import { LAST_LEVEL } from './levels.js';
 
 // Upgrades bought in the garage, and the car stats they give.
 // Costs are in materials (everything you collect goes into one bank).
+// group: which heading it sits under in the garage.
 export const UPGRADES = [
-  { id: 'tank', name: 'Fuel Tank', desc: 'Turbo lasts longer', costs: [8, 14, 22, 34, 48] },
-  { id: 'armor', name: 'Armour Plates', desc: '+1 heart each', costs: [12, 24, 42] },
-  { id: 'thrusters', name: 'Hover Thrusters', desc: 'Steer faster', costs: [6, 12, 18, 30, 44] },
-  { id: 'booster', name: 'Booster Engine', desc: 'Faster turbo', costs: [10, 20, 36, 52] },
+  // Car
+  { id: 'tank', group: 'Car', name: 'Fuel Tank', desc: 'Turbo lasts longer', costs: [8, 14, 22, 34, 48] },
+  { id: 'armor', group: 'Car', name: 'Armour Plates', desc: '+1 heart each', costs: [12, 24, 42] },
+  { id: 'thrusters', group: 'Car', name: 'Hover Thrusters', desc: 'Steer faster', costs: [6, 12, 18, 30, 44] },
+  { id: 'booster', group: 'Car', name: 'Booster Engine', desc: 'Faster turbo', costs: [10, 20, 36, 52] },
+  { id: 'regen', group: 'Car', name: 'Fuel Recycler', desc: 'Turbo fuel refills 30% faster each', costs: [10, 20, 34] },
+  { id: 'ram', group: 'Car', name: 'Battering Ram', desc: 'While boosting, crash through enemies without getting hurt', costs: [60] },
+  // Survival
+  { id: 'recovery', group: 'Survival', name: 'Shock Absorbers', desc: 'Longer safe time after you get hit', costs: [12, 26] },
+  { id: 'autorepair', group: 'Survival', name: 'Auto Repair', desc: 'Fixes 1 heart every 60 / 45 / 30 s', costs: [30, 50, 80] },
+  { id: 'startshield', group: 'Survival', name: 'Launch Shield', desc: 'Start every level with a shield for 4 / 7 s', costs: [16, 32] },
+  { id: 'lucky', group: 'Survival', name: 'Lucky Charm', desc: '6% chance per level to dodge a hit', costs: [20, 36, 56] },
+  // Collecting
+  { id: 'coil', group: 'Collecting', name: 'Magnet Coil', desc: 'Pulls material in from further away', costs: [12, 22, 36] },
+  { id: 'scoop', group: 'Collecting', name: 'Wide Scoop', desc: 'Grab material without touching it exactly', costs: [8, 16, 28] },
+  { id: 'scanner', group: 'Collecting', name: 'Material Scanner', desc: 'More material appears', costs: [14, 28, 46] },
+  { id: 'headstart', group: 'Collecting', name: 'Head Start', desc: 'Start each level with 3 / 6 / 9 material', costs: [15, 30, 50] },
+  { id: 'salvage', group: 'Collecting', name: 'Salvage Kit', desc: '+10% material each when you beat a level', costs: [20, 40, 65] },
+  { id: 'coins', group: 'Collecting', name: 'Coin Collector', desc: '+15% coins each', costs: [15, 30, 50] },
+  // Abilities and bosses
+  { id: 'capacitor', group: 'Abilities & Bosses', name: 'Ability Capacitor', desc: 'Your ability recharges 10% faster each', costs: [14, 28, 46] },
+  { id: 'coremagnet', group: 'Abilities & Bosses', name: 'Core Catcher', desc: 'Catch blue cores from further away', costs: [10, 22] },
+  { id: 'powerbolts', group: 'Abilities & Bosses', name: 'Power Bolts', desc: '25% chance each for a bolt to do double damage', costs: [20, 40] },
+  { id: 'bossbreaker', group: 'Abilities & Bosses', name: 'Boss Breaker', desc: 'Bosses start with 10% less health each', costs: [25, 50] },
 ];
 
 // Touch-screen controls by default on phones and tablets.
@@ -21,7 +42,7 @@ export function createProgress() {
     coins: 0, // coins to spend in the shop
     best: 1, // highest level unlocked
     level: 1, // level to fly next
-    levels: { tank: 0, armor: 0, thrusters: 0, booster: 0 },
+    levels: Object.fromEntries(UPGRADES.map((u) => [u.id, 0])),
     // Shop items: the first item of every kind is free.
     owned: Object.fromEntries(Object.entries(SHOP).map(([k, items]) => [k, [items[0].id]])),
     equipped: Object.fromEntries(Object.entries(SHOP).map(([k, items]) => [k, items[0].id])),
@@ -113,6 +134,21 @@ export function getStats(levels, best = 1) {
     maxHealth: 3 + levels.armor + (unlocked('armor', best) ? 1 : 0),
     steerSpeed: 13 * (1 + 0.12 * levels.thrusters),
     boostSpeed: 85 + 10 * levels.booster,
-    magnet: unlocked('magnet', best) ? 9 : 0,
+    magnet: (unlocked('magnet', best) ? 9 : 0) + 3 * levels.coil,
+    refill: 0.15 * (1 + 0.3 * levels.regen),
+    ram: levels.ram > 0,
+    invuln: 1.5 + 0.5 * levels.recovery,
+    repairEvery: [0, 60, 45, 30][levels.autorepair],
+    startShield: [0, 4, 7][levels.startshield],
+    dodge: 0.06 * levels.lucky,
+    collect: 1.9 + 0.45 * levels.scoop,
+    spawnMult: 1 - 0.15 * levels.scanner,
+    headStart: 3 * levels.headstart,
+    matMult: 1 + 0.1 * levels.salvage,
+    coinMult: 1 + 0.15 * levels.coins,
+    cooldownMult: 1 - 0.1 * levels.capacitor,
+    coreRadius: 2 + 0.7 * levels.coremagnet,
+    powerBolt: 0.25 * levels.powerbolts,
+    bossHpMult: 1 - 0.1 * levels.bossbreaker,
   };
 }

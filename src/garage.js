@@ -58,11 +58,18 @@ export function createGarage(progress, { onBuy, onLeave, onPickLevel, onShop, on
   function renderUpgrades() {
     const list = $('garage-list');
     list.innerHTML = '';
+    let group = null;
     UPGRADES.forEach((up, i) => {
+      if (up.group !== group) {
+        group = up.group;
+        const h = document.createElement('h2');
+        h.textContent = group.toUpperCase();
+        list.append(h);
+      }
       const lvl = progress.levels[up.id];
       const cost = nextCost(progress, up);
       list.append(button('upgrade', `
-        <span class="key">${i + 1}</span>
+        <span class="key">${i < 9 ? i + 1 : '·'}</span>
         <span class="info"><b>${up.name}</b><small>${up.desc}</small>
           <span class="pips">${'■'.repeat(lvl)}${'□'.repeat(up.costs.length - lvl)}</span></span>
         <span class="cost">${cost === null ? 'MAX' : cost}</span>`, () => tryBuy(up), cost === null || progress.bank < cost));

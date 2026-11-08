@@ -117,11 +117,13 @@ export function createMaterialField(scene) {
 
     // Returns how many pieces the car collected this frame.
     // magnet: pull radius (0 = no magnet).
-    update(dt, speed, carPos, spawning, time, magnet = 0) {
+    // opts: { collect (grab radius), spawnMult (lower = more material) }
+    update(dt, speed, carPos, spawning, time, magnet = 0, opts = {}) {
+      const collect = opts.collect ?? COLLECT_DIST;
       if (spawning) {
         timer -= dt;
         if (timer <= 0) {
-          timer = rand(1.0, 1.6);
+          timer = rand(1.0, 1.6) * (opts.spawnMult ?? 1);
           // A short trail of 1–3 pieces, so good steering is rewarded.
           const n = 1 + Math.floor(Math.random() * 3);
           const x = rand(-BOUNDS.x + 0.5, BOUNDS.x - 0.5);
@@ -162,7 +164,7 @@ export function createMaterialField(scene) {
         p.y = c.baseY + Math.sin(time * 2 + c.phase) * 0.15;
         c.group.rotation.x += dt * 1.3;
         c.group.rotation.y += dt * 1.7;
-        if (p.distanceTo(carPos) < COLLECT_DIST) { kill(c); got++; }
+        if (p.distanceTo(carPos) < collect) { kill(c); got++; }
         else if (p.z > 20) kill(c);
       }
       return got;
