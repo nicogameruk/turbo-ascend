@@ -30,6 +30,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 
 const BASE_SPEED = 40;
 const MENU_SPEED = 22;
@@ -86,6 +87,9 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 let highGraphics = true;
+// Cartoon levels: thick black outlines around everything.
+const outline = new OutlineEffect(renderer, { defaultThickness: 0.0045, defaultColor: [0.05, 0.05, 0.08] });
+let cartoon = false;
 // Settings → Graphics: High (glow, sharp shadows) or Low (faster, for slow devices).
 function applyGraphics(level) {
   highGraphics = level !== 'low';
@@ -350,6 +354,9 @@ function setScene(l) {
   world.setTheme(l);
   materials.setLook(l.n);
   car.setTier(progress.best);
+  cartoon = !!l.cartoon;
+  scene.environmentIntensity = cartoon ? 0.1 : 0.35; // flat cartoon colours, fewer reflections
+  document.body.classList.toggle('bright-level', cartoon);
 }
 
 function showTitle() {
@@ -367,6 +374,7 @@ function showTitle() {
   portal.close();
   car.reset();
   car.setShield(false, 0);
+  car.setShape(progress.equipped.body);
   car.applyUpgrades(progress.levels);
   setScene(getLevel(progress.best));
   trails.reset(car.group.position);
@@ -388,6 +396,7 @@ function startRun() {
   hazards.setLevel(level);
   car.reset();
   car.setStats(stats);
+  car.setShape(level.carShape ?? progress.equipped.body); // Doodle Land: you're a pencil!
   car.applyUpgrades(progress.levels);
   materials.reset();
   shots.clear();
@@ -533,7 +542,7 @@ const ABILITY_SOUNDS = {
   warp: 'dash', gravity: 'blast', hack: 'zap', slowtime: 'shield', firebreath: 'whoosh', rainbow: 'shield',
   nitro: 'whoosh', repair: 'buy', doubleup: 'portal', missiles: 'zap',
   tidal: 'whoosh', sugarrush: 'buy', meteorstrike: 'boom', icewall: 'shield', phantom: 'portal',
-  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready',
+  helperdrones: 'zap', vinegrab: 'whoosh', thunder: 'thunder', dreamheal: 'buy', omega: 'blast', coffee: 'ready', scribble: 'whoosh',
 };
 
 function useAbility() {
@@ -614,6 +623,16 @@ function useAbility() {
     if (state === 'boss') boss.hurt(2);
     hud.flash(0.6);
     hud.banner(`⚡ THUNDERSTRIKE! ${targets.length + (state === 'boss' ? 1 : 0)} zapped`, 1.2);
+  }
+  if (id === 'scribble') {
+    const targets = enemies.targets(pos, 3);
+    for (const t of targets) {
+      for (let k = 0; k < 4; k++) booms.spawn(t.pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 0)), 0x14141a, 0.5);
+      t.destroy();
+    }
+    if (state === 'boss') boss.hurt(1);
+    hud.banner(targets.length ? `✏️ SCRIBBLED OUT ${targets.length}!` : '✏️ Nothing to scribble', 1.2);
+    if (!targets.length && state !== 'boss') cooldown[id] = 1;
   }
   if (id === 'coffee') {
     health = Math.min(stats.maxHealth, health + 1);
@@ -742,6 +761,7 @@ function openGarage() {
   helpers.forEach((d) => { d.visible = false; });
   resetAbilityTimers();
   car.setDash(false);
+  car.setShape(progress.equipped.body);
   car.applyUpgrades(progress.levels);
   car.setTier(progress.best);
   audio.setEngine(false);
@@ -1045,7 +1065,8 @@ function frame() {
     bossMax: boss.maxHp,
     ability: abilityInfo,
   });
-  if (highGraphics) composer.render();
+  if (cartoon) outline.render(scene, camera);
+  else if (highGraphics) composer.render();
   else renderer.render(scene, camera);
   input.endFrame();
 }

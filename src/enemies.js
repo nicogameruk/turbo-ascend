@@ -1055,10 +1055,53 @@ function createLetter() {
   };
 }
 
+// ---------- Eraser (Doodle Land): a pink eraser that bounces down your lane ----------
+function createEraser() {
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  group.add(body);
+  const pink = std(0xff8aa8, 0.9, 0);
+  const band = std(0x3a6ae8, 0.6, 0);
+  mesh(body, roundBox(1.5, 0.8, 0.9, 0.2), pink);
+  mesh(body, roundBox(0.6, 0.84, 0.94, 0.08), band, 0.2, 0, 0);
+  // Angry cartoon eyes
+  for (const x of [-0.45, -0.15]) {
+    mesh(body, new THREE.SphereGeometry(0.13, 12, 8), basic(0xffffff), x, 0.12, 0.46);
+    mesh(body, new THREE.SphereGeometry(0.06, 8, 6), basic(0x111111), x + 0.02, 0.1, 0.56);
+  }
+  mesh(body, roundBox(0.45, 0.06, 0.04, 0.02), basic(0x111111), -0.3, 0.32, 0.47).rotation.z = 0.2;
+  let t, baseX, hop, speed;
+  return {
+    group,
+    radius: 1.3,
+    blastable: true,
+    start({ carPos, diff }) {
+      baseX = THREE.MathUtils.clamp(carPos.x + rand(-3, 3), -BOUNDS.x, BOUNDS.x);
+      group.position.set(baseX, 2, -200);
+      t = rand(0, 1);
+      hop = rand(1.8, 2.6);
+      speed = 28 + diff * 1.2 + rand(0, 6);
+    },
+    onRam() { group.position.z = 30; },
+    update(dt, { carPos }) {
+      const p = group.position;
+      t += dt;
+      p.z += speed * dt;
+      if (p.z < -15) baseX += (carPos.x - baseX) * ease(0.6, dt);
+      const bnc = Math.abs(Math.sin(t * hop));
+      p.x = baseX;
+      p.y = BOUNDS.yMin + 0.3 + bnc * (BOUNDS.yMax - BOUNDS.yMin - 0.6);
+      body.scale.set(1 + (1 - bnc) * 0.25, 1 - (1 - bnc) * 0.25, 1); // squash and stretch, like a cartoon
+      body.rotation.z = Math.sin(t * hop) * 0.25;
+      return p.z < 25;
+    },
+  };
+}
+
 const FACTORIES = {
   bike: createBike, jet: createJet, ufo: createUfo, warship: createWarship, sniper: createSniper, demon: createDemon,
   pirate: createPirate, void: createVoid, glitch: createGlitch, dragon: createDragon, spirit: createSpirit,
-  shark: createShark, gummy: createGummy, bat: createBat, bee: createBee, letter: createLetter,
+  shark: createShark, gummy: createGummy, bat: createBat, bee: createBee, letter: createLetter, eraser: createEraser,
 };
 
 export function createEnemies(scene, booms) {

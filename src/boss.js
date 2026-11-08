@@ -237,6 +237,25 @@ export function createBoss(scene) {
     }
   }
   const eaterParts = {};
+  const inkBlobs = [];
+  { // The Ink Blob: a wobbly ink splat with big googly eyes
+    const g = extra('ink');
+    const ink = new THREE.MeshStandardMaterial({ color: 0x14141a, roughness: 0.15, metalness: 0.2 });
+    for (const [x, y, z, r] of [[0, 0.5, 0, 3], [-2.4, -0.3, 0.3, 1.8], [2.5, -0.1, 0.2, 1.9], [-1.2, 2.2, -0.2, 1.4], [1.5, 2.0, 0, 1.5], [0.3, -1.6, 0.4, 1.6], [-3.6, 1.0, -0.4, 0.9], [3.8, 1.3, -0.3, 0.8]]) {
+      const blob = put(g, new THREE.SphereGeometry(r, 24, 16), ink, x, y, z);
+      inkBlobs.push({ mesh: blob, phase: Math.random() * 6 });
+    }
+    // Ink drips
+    for (const x of [-1.8, 0.8, 2.6]) put(g, new THREE.CapsuleGeometry(0.25, 1.2, 4, 10), ink, x, -2.4, 0.6);
+    // Big googly eyes (they wobble)
+    const eyeWhite = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const pupil = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    for (const x of [-1.1, 1.1]) {
+      put(g, new THREE.SphereGeometry(0.85, 20, 14), eyeWhite, x, 1.2, 2.6).scale.z = 0.4;
+      const p = put(g, new THREE.SphereGeometry(0.38, 16, 10), pupil, x, 1.0, 2.95);
+      inkBlobs.push({ mesh: p, eye: true, base: p.position.clone(), phase: x });
+    }
+  }
   const managerScreen = { mat: null };
   { // The Hiring Manager: a giant office desk with a computer, a tie and a coffee
     const g = extra('manager');
@@ -438,10 +457,10 @@ export function createBoss(scene) {
       hullMat.metalness = cfg.metal ? 1 : 0.5;
       hullMat.roughness = cfg.metal ? 0.15 : 0.6;
       for (const [name, g] of Object.entries(extras)) g.visible = name === cfg.extra;
-      const noPods = ['saucer', 'demon', 'void', 'dragon', 'prism', 'eater', 'glitch', 'manager'].includes(cfg.extra);
+      const noPods = ['saucer', 'demon', 'void', 'dragon', 'prism', 'eater', 'glitch', 'manager', 'ink'].includes(cfg.extra);
       pods.forEach((m) => { m.visible = !noPods; });
       rotors.forEach((m) => { m.visible = !noPods; });
-      const noHull = ['void', 'eater'].includes(cfg.extra);
+      const noHull = ['void', 'eater', 'ink'].includes(cfg.extra);
       baseHull.forEach((m) => { m.visible = !noHull; });
       patterns = cfg.patterns ?? [];
       // The final boss is huge and keeps further away.
@@ -519,6 +538,12 @@ export function createBoss(scene) {
         sirenMats[1].color.setHex(on ? 0x101840 : 0x2a60ff);
       }
       if (cfg.extra === 'saucer') extras.saucer.rotation.y += dt * 0.8;
+      if (cfg.extra === 'ink') {
+        for (const blob of inkBlobs) {
+          if (blob.eye) blob.mesh.position.set(blob.base.x + Math.sin(t * 7 + blob.phase) * 0.18, blob.base.y + Math.cos(t * 5 + blob.phase) * 0.18, blob.base.z);
+          else blob.mesh.scale.setScalar(1 + Math.sin(t * 3 + blob.phase) * 0.07); // wobble
+        }
+      }
       if (cfg.extra === 'manager' && managerScreen.draw) {
         const msgs = [['NEXT!', '#4ad8ff'], ['DENIED', '#ff4a5a'], ['ANY QUESTIONS?', '#ffd040'], ['HMM...', '#4ad8ff']];
         const k = Math.floor(t / 2.5) % msgs.length;

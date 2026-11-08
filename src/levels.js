@@ -338,6 +338,21 @@ export const LEVELS = [
     music: { root: 53, scale: MAJOR, tempo: 96, lead: 'triangle' },
     ability: 'coffee',
   },
+  // ---- A cartoon world drawn in a sketchbook; your car becomes a pencil ----
+  {
+    n: 26, name: 'Doodle Land', material: 'Crayons', goal: 52,
+    cartoon: true, carShape: 'pencil',
+    sky: ['#fffdf5', '#f4efe2'], sky2: ['#fff4d8', '#fde8e8'], fog: 0xf8f4ea, hemi: [0xffffff, 0xd8d0c0],
+    ground: { style: 'grid', base: '#fbfaf3', line: '#9ab8e8', line2: '#f0a0a0', noGlow: true },
+    scenery: { shape: 'tree', color: 0x4ad86a },
+    cloud: { color: 0xffffff, emissive: 0xd8e4f0 },
+    enemies: { chasers: 0, waves: [{ type: 'eraser', every: [1.8, 3], max: 4 }, { type: 'bee', every: [7, 10], max: 1 }, { type: 'ufo', every: [9, 12], max: 1 }] },
+    hazards: [{ type: 'lava', every: [8, 11] }, { type: 'meteor', every: [7, 10] }],
+    warnings: { lava: 'SCRIBBLE WALL — fly over it!' },
+    boss: { name: 'THE INK BLOB', hp: 46, hull: 0x14141a, fireEvery: 0.6, extra: 'ink', minion: 'eraser', patterns: ['ring', 'minions', 'teleport'] },
+    music: { root: 60, scale: MAJOR, tempo: 132, lead: 'triangle' },
+    ability: 'scribble',
+  },
 ];
 
 // Colour and icon for each level's pop-ups (like "ability ready").
@@ -367,6 +382,7 @@ export const LEVEL_THEMES = {
   23: { accent: '#ffb8f0', glow: '#6a5aaa', icon: '💭', rainbow: true },
   24: { accent: '#ffffff', glow: '#6a2aaa', icon: 'Ω' },
   25: { accent: '#4a90ff', glow: '#1a2238', icon: '💼' },
+  26: { accent: '#ffc81a', glow: '#3a3a44', icon: '✏️' },
 };
 
 export const LAST_LEVEL = LEVELS.length;

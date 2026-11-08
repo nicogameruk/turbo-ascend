@@ -350,7 +350,8 @@ export function createWorld(scene, hemi, opts = {}) {
         groundTex.anisotropy = opts.anisotropy ?? 1;
         groundMat.map = groundTex;
         groundMat.emissiveMap = grid ? groundTex : null;
-        groundMat.emissive.setHex(grid ? 0xffffff : 0x000000);
+        groundMat.emissive.setHex(grid && !level.ground.noGlow ? 0xffffff : 0x000000);
+        if (grid && level.ground.noGlow) groundMat.emissiveMap = null;
         groundMat.needsUpdate = true;
       }
       stars.visible = !!level.space || level.n === 10;

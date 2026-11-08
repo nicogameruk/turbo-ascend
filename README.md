@@ -1,6 +1,6 @@
 # Turbo Ascend
 
-A 3D flying-car escape game that runs in the browser. Fly through 25 levels, collect materials, beat each boss, and upgrade your car from a dented dirt racer into a glowing cosmic machine.
+A 3D flying-car escape game that runs in the browser. Fly through 26 levels, collect materials, beat each boss, and upgrade your car from a dented dirt racer into a glowing cosmic machine.
 
 **▶ Play it: https://nicogameruk.github.io/turbo-ascend/**
 
@@ -63,7 +63,7 @@ Progress, coins, looks, records and settings save automatically in the browser (
 | File | What it does |
 |---|---|
 | `src/main.js` | Game loop, states (title, flying, boss, garage…), abilities |
-| `src/levels.js` | All 25 levels: looks, enemies, hazards, boss, music |
+| `src/levels.js` | All 26 levels: looks, enemies, hazards, boss, music |
 | `src/car.js` | The car, its upgrades and its look for each level |
 | `src/enemies.js` | Regular enemies and the spawner |
 | `src/boss.js` | The bosses and their attacks |

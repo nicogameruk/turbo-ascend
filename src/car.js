@@ -36,6 +36,7 @@ const TIERS = {
   23: { color: 0xffd8f0, rough: 0.2, metal: 0.2, emissive: 0x6a4a6a, parts: [13, 8, 7], rainbow: true }, // Dream: pastel, wings, rainbow
   24: { color: 0xffffff, rough: 0.1, metal: 0.4, emissive: 0xffffff, glow: 0.9, parts: [14, 7, 12] }, // Omega: blinding white
   25: { color: 0x1a2238, rough: 0.25, metal: 0.6, parts: [5] }, // Job Application: navy business suit with gold pinstripes
+  26: { color: 0xffc81a, rough: 0.55, metal: 0, parts: [] }, // Doodle Land: pencil yellow
 };
 
 export function createCar() {

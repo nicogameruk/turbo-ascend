@@ -319,6 +319,13 @@ export function createAudio() {
       lead: { wave: 'sine', octave: 2, density: 0.3, len: 3, vol: 0.07 },
       delay: 0.45,
     },
+    cartoon: { // Doodle Land: bouncy cartoon tune
+      kick: 'x...x...x...x...', snare: '....x.......x...', block: '..x...x...x...x.',
+      bass: 'bounce', bassWave: 'triangle',
+      bell: { octave: 2, every: 4 },
+      lead: { wave: 'triangle', octave: 1, density: 0.65, len: 0.5, vol: 0.12 },
+      delay: 0.1,
+    },
     office: { // Job Application: smooth elevator-music jazz
       kick: 'x.......x.......', shaker: '..x...x...x...x.', snare: '....x.......x...',
       bass: 'walk', bassWave: 'triangle',
@@ -340,7 +347,7 @@ export function createAudio() {
     1: 'rock', 2: 'folk', 3: 'heavy', 4: 'industrial', 5: 'funk', 6: 'crystal', 7: 'ethereal',
     8: 'synthwave', 9: 'dark', 10: 'techno', 11: 'clockwork', 12: 'epic', 13: 'chip', 14: 'cosmic',
     15: 'underwater', 16: 'candy', 17: 'volcano', 18: 'ice', 19: 'haunted', 20: 'factory', 21: 'jungle',
-    22: 'storm', 23: 'dream', 24: 'omega', 25: 'office',
+    22: 'storm', 23: 'dream', 24: 'omega', 25: 'office', 26: 'cartoon',
   };
   const hit = (pattern, i) => !!pattern && pattern[i % 16] === 'x';
 

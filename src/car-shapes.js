@@ -130,6 +130,27 @@ const SHAPES = {
     }
   } },
 
+  // A giant pencil (Doodle Land turns your car into one).
+  pencil: { roofY: 0.75, compact: true, build(b) {
+    const yellow = new THREE.MeshStandardMaterial({ color: 0xffc81a, roughness: 0.55 });
+    const wood = new THREE.MeshStandardMaterial({ color: 0xe8c89a, roughness: 0.8 });
+    const lead = new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.4, metalness: 0.3 });
+    const metal = new THREE.MeshStandardMaterial({ color: 0xc8ccd2, roughness: 0.3, metalness: 1 });
+    const eraser = new THREE.MeshStandardMaterial({ color: 0xff8aa8, roughness: 0.9 });
+    const along = (m) => { m.rotation.x = Math.PI / 2; return m; };
+    along(b.add(new THREE.CylinderGeometry(0.62, 0.62, 3.4, 6), yellow, 0, 0.15, 0.2)); // six-sided body
+    const cone = b.add(new THREE.ConeGeometry(0.62, 1.2, 6), wood, 0, 0.15, -2.1); // sharpened wood
+    cone.rotation.x = -Math.PI / 2;
+    const tip = b.add(new THREE.ConeGeometry(0.2, 0.42, 6), lead, 0, 0.15, -2.55); // pencil lead
+    tip.rotation.x = -Math.PI / 2;
+    along(b.add(new THREE.CylinderGeometry(0.64, 0.64, 0.42, 20), metal, 0, 0.15, 2.1)); // metal band
+    for (const z of [1.95, 2.25]) along(b.add(new THREE.TorusGeometry(0.64, 0.04, 8, 24), metal, 0, 0.15, z)).rotation.x = 0;
+    along(b.add(new THREE.CylinderGeometry(0.6, 0.6, 0.5, 20), eraser, 0, 0.15, 2.55)); // pink eraser
+    const end = b.add(new THREE.SphereGeometry(0.6, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), eraser, 0, 0.15, 2.8);
+    end.rotation.x = Math.PI / 2;
+    end.scale.y = 0.35;
+  } },
+
   hotdog: { roofY: 0.95, compact: true, build(b) {
     // Fixed colours: a hot dog is always a hot dog.
     const bun = new THREE.MeshStandardMaterial({ color: 0xe0a050, roughness: 0.8 });
