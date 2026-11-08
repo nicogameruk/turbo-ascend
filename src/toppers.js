@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 
 // Hats and roof toppers from the shop, built from simple shapes.
 // Each builder returns a Group whose base sits at y = 0 (the car roof).
@@ -28,7 +29,7 @@ const BUILDERS = {
     part(g, new THREE.SphereGeometry(0.09, 10, 8), std(0xffffff, 0.8), 0, 0.78, 0);
   },
   cone(g) {
-    part(g, new THREE.BoxGeometry(0.6, 0.06, 0.6), std(0xff6a1a), 0, 0.03, 0);
+    part(g, roundBox(0.6, 0.06, 0.6), std(0xff6a1a), 0, 0.03, 0);
     part(g, new THREE.ConeGeometry(0.25, 0.8, 20), std(0xff6a1a), 0, 0.46, 0);
     part(g, new THREE.CylinderGeometry(0.16, 0.19, 0.12, 20), std(0xffffff), 0, 0.42, 0);
   },
@@ -44,12 +45,12 @@ const BUILDERS = {
   },
   propeller(g) {
     part(g, new THREE.SphereGeometry(0.32, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), std(0x2a6aff));
-    part(g, new THREE.BoxGeometry(0.4, 0.04, 0.25), std(0xff2a3a), 0, 0.02, -0.4);
+    part(g, roundBox(0.4, 0.04, 0.25), std(0xff2a3a), 0, 0.02, -0.4);
     part(g, new THREE.CylinderGeometry(0.03, 0.03, 0.15, 6), std(0x333333), 0, 0.38, 0);
     const prop = new THREE.Group();
     prop.position.y = 0.46;
-    part(prop, new THREE.BoxGeometry(0.8, 0.02, 0.1), std(0xffd040));
-    part(prop, new THREE.BoxGeometry(0.1, 0.02, 0.8), std(0xff2a3a));
+    part(prop, roundBox(0.8, 0.02, 0.1), std(0xffd040));
+    part(prop, roundBox(0.1, 0.02, 0.8), std(0xff2a3a));
     g.add(prop);
     g.userData.spin = prop;
   },

@@ -66,11 +66,13 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
   const music = $('set-music');
   const sfx = $('set-sfx');
   const controls = $('set-controls');
-  const readSettings = () => onSettings({ volume: volume.value / 100, music: music.checked, sfx: sfx.checked, controls: controls.value });
+  const graphics = $('set-graphics');
+  const readSettings = () => onSettings({ volume: volume.value / 100, music: music.checked, sfx: sfx.checked, controls: controls.value, graphics: graphics.value });
   volume.addEventListener('input', readSettings);
   music.addEventListener('change', readSettings);
   sfx.addEventListener('change', readSettings);
   controls.addEventListener('change', readSettings);
+  graphics.addEventListener('change', readSettings);
 
   return {
     get open() { return current; },
@@ -89,6 +91,7 @@ export function createMenus({ onContinue, onNewGame, onResume, onRestart, onQuit
       music.checked = s.music;
       sfx.checked = s.sfx;
       controls.value = s.controls;
+      graphics.value = s.graphics;
     },
     // Keyboard: Enter picks the first button, Esc goes back / resumes.
     handleKeys(input) {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 
 // Pets from the shop: a little buddy that flies next to your car.
 // What each pet does to help is handled in main.js (see PET perks in cosmetics.js).
@@ -26,7 +27,7 @@ function wingPair(g, mat, y, z, span = 0.5) {
   for (const sd of [-1, 1]) {
     const pivot = new THREE.Group();
     pivot.position.set(sd * 0.2, y, z);
-    const w = part(pivot, new THREE.BoxGeometry(span, 0.03, 0.25), mat, sd * span / 2, 0, 0);
+    const w = part(pivot, roundBox(span, 0.03, 0.25), mat, sd * span / 2, 0, 0);
     w.castShadow = false;
     g.add(pivot);
     wings.push({ pivot, sd });
@@ -45,10 +46,10 @@ const BUILDERS = {
   },
   puppy(g, a) {
     const metal = std(0xa8b0ba, 0.3, 0.8);
-    part(g, new THREE.BoxGeometry(0.4, 0.3, 0.55), metal);
-    part(g, new THREE.BoxGeometry(0.34, 0.3, 0.3), metal, 0, 0.22, -0.32);
-    part(g, new THREE.BoxGeometry(0.3, 0.08, 0.06), new THREE.MeshBasicMaterial({ color: 0x4dd8ff }), 0, 0.25, -0.48);
-    for (const x of [-0.14, 0.14]) part(g, new THREE.BoxGeometry(0.08, 0.2, 0.12), std(0x5a626a, 0.4, 0.6), x, 0.42, -0.3).rotation.z = x * 2;
+    part(g, roundBox(0.4, 0.3, 0.55), metal);
+    part(g, roundBox(0.34, 0.3, 0.3), metal, 0, 0.22, -0.32);
+    part(g, roundBox(0.3, 0.08, 0.06), new THREE.MeshBasicMaterial({ color: 0x4dd8ff }), 0, 0.25, -0.48);
+    for (const x of [-0.14, 0.14]) part(g, roundBox(0.08, 0.2, 0.12), std(0x5a626a, 0.4, 0.6), x, 0.42, -0.3).rotation.z = x * 2;
     a.tail = part(g, new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6), metal, 0, 0.2, 0.33);
     a.tail.rotation.x = 0.8;
     part(g, new THREE.CylinderGeometry(0.15, 0.15, 0.05, 14), glow(0x4dd8ff), 0, -0.2, 0);
@@ -100,10 +101,10 @@ const BUILDERS = {
     a.spin = g;
   },
   dragon(g, a) {
-    const green = std(0x3aaa4a, 0.4, 0.2, { flatShading: true });
+    const green = std(0x3aaa4a, 0.4, 0.2);
     part(g, new THREE.SphereGeometry(0.24, 12, 10), green).scale.set(1, 0.9, 1.4);
     part(g, new THREE.SphereGeometry(0.18, 12, 10), green, 0, 0.18, -0.32);
-    const snout = part(g, new THREE.BoxGeometry(0.16, 0.1, 0.16), green, 0, 0.14, -0.48);
+    const snout = part(g, roundBox(0.16, 0.1, 0.16), green, 0, 0.14, -0.48);
     snout.castShadow = false;
     for (const x of [-0.08, 0.08]) part(g, new THREE.ConeGeometry(0.035, 0.14, 6), std(0xf0e0b0), x, 0.36, -0.28).rotation.x = 0.4;
     eyes(g, 0.25, -0.44, 0.08, 0.04);

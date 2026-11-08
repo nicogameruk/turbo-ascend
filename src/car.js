@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 import { buildShapes } from './car-shapes.js';
 
 // Area the car can move in (it stays at z = 0; the world moves past it).
@@ -42,9 +43,10 @@ export function createCar() {
   group.add(body);
 
   // Level 1 look: rusty, muddy roadster.
-  const paint = new THREE.MeshStandardMaterial({ color: 0xa0582c, roughness: 0.5, metalness: 0.35 });
+  // Car paint with a glossy clear coat on top, like a real car.
+  const paint = new THREE.MeshPhysicalMaterial({ color: 0xa0582c, roughness: 0.5, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.12 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x23262d, roughness: 0.45, metalness: 0.6 });
-  const glass = new THREE.MeshStandardMaterial({ color: 0x1a2c40, roughness: 0.08, metalness: 0.9 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x14202e, roughness: 0.04, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6 });
   const mud = new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 1 });
   const headlight = new THREE.MeshBasicMaterial({ color: 0xfff1c0 });
   const glow = new THREE.MeshBasicMaterial({ color: GLOW_COLORS[0] });
@@ -57,23 +59,63 @@ export function createCar() {
     parent.add(m);
     return m;
   };
-  const box = (w, h, d, mat, x, y, z) => add(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+  const box = (w, h, d, mat, x, y, z) => add(roundBox(w, h, d), mat, x, y, z);
 
-  // The roadster shell (the default body shape).
+  // The roadster shell (the default body shape): a sculpted sports-car body.
+  // Its side profile is drawn as a curve, then pulled out to the car's width
+  // with rounded edges, like a real car body panel.
+  const profile = new THREE.Shape();
+  profile.moveTo(-3.15, -0.22); // front, bottom
+  profile.lineTo(-3.25, -0.02); // front lip
+  profile.quadraticCurveTo(-3.2, 0.12, -2.6, 0.2); // nose curves up
+  profile.quadraticCurveTo(-1.6, 0.3, -0.75, 0.3); // long hood
+  profile.lineTo(1.2, 0.32); // under the cockpit
+  profile.quadraticCurveTo(1.9, 0.33, 2.25, 0.42); // rear deck rises to a ducktail
+  profile.lineTo(2.3, 0.1);
+  profile.quadraticCurveTo(2.32, -0.2, 2.1, -0.22); // rounded tail
+  profile.closePath();
+  const bodyGeo = new THREE.ExtrudeGeometry(profile, { depth: 2.0, bevelEnabled: true, bevelSize: 0.13, bevelThickness: 0.14, bevelSegments: 5, curveSegments: 16 });
+  bodyGeo.translate(0, 0, -1.0);
+  bodyGeo.rotateY(-Math.PI / 2); // profile's x becomes the car's length (nose toward -z)
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.85 });
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xd8dde4, roughness: 0.15, metalness: 1, envMapIntensity: 1.5 });
+  const tailLight = new THREE.MeshStandardMaterial({ color: 0x5a0008, emissive: 0xff1a2a, emissiveIntensity: 1.6, roughness: 0.2 });
+  const lightGlass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.02, transmission: 0, transparent: true, opacity: 0.35, clearcoat: 1 });
+  const canopyGeo = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
   const roadsterParts = [
-    box(2.3, 0.45, 4.2, paint, 0, 0, 0), // chassis
-    box(2.0, 0.28, 1.1, paint, 0, -0.06, -2.55), // nose
-    box(1.5, 0.45, 1.7, glass, 0, 0.44, 0.3), // cockpit
-    box(2.5, 0.08, 0.5, dark, 0, 0.66, 2.0), // spoiler
-    box(0.12, 0.4, 0.12, dark, -0.8, 0.42, 2.0),
-    box(0.12, 0.4, 0.12, dark, 0.8, 0.42, 2.0),
+    add(bodyGeo, paint, 0, 0, 0),
+    // Teardrop glass cockpit
+    (() => { const c = add(canopyGeo, glass, 0, 0.34, 0.15); c.scale.set(0.72, 0.42, 1.15); return c; })(),
+    // Front grille and rear diffuser
+    box(1.3, 0.12, 0.12, dark, 0, -0.08, -3.22),
+    box(1.8, 0.1, 0.3, dark, 0, -0.2, 2.2),
+    // Side mirrors on little stalks
+    ...[-1, 1].flatMap((sd) => [
+      box(0.25, 0.05, 0.06, dark, sd * 1.05, 0.35, -0.55),
+      (() => { const m = add(new THREE.SphereGeometry(0.11, 14, 10), paint, sd * 1.2, 0.37, -0.55); m.scale.set(1, 0.75, 1.3); return m; })(),
+    ]),
+    // Rear wing on two struts
+    box(2.4, 0.06, 0.45, dark, 0, 0.72, 2.05),
+    box(0.08, 0.32, 0.12, dark, -0.75, 0.55, 2.05),
+    box(0.08, 0.32, 0.12, dark, 0.75, 0.55, 2.05),
+    // Red tail lights
+    box(0.55, 0.08, 0.05, tailLight, -0.65, 0.22, 2.34),
+    box(0.55, 0.08, 0.05, tailLight, 0.65, 0.22, 2.34),
   ];
   const mudSplats = [
     box(0.7, 0.04, 0.9, mud, -0.5, 0.24, -1.3),
     box(0.5, 0.04, 0.5, mud, 0.65, 0.24, 1.1),
     box(0.4, 0.05, 0.3, mud, 0.3, -0.03, -3.05),
   ];
-  roadsterParts.push(box(0.45, 0.12, 0.04, headlight, -0.7, 0, -3.11), box(0.45, 0.12, 0.04, headlight, 0.7, 0, -3.11));
+  // Headlights: a bright lamp under a clear rounded cover.
+  for (const sd of [-1, 1]) {
+    const lamp = add(new THREE.SphereGeometry(0.16, 16, 10), headlight, sd * 0.72, 0.06, -3.05);
+    lamp.scale.set(1.6, 0.6, 0.6);
+    const cover = add(new THREE.SphereGeometry(0.2, 16, 10), lightGlass, sd * 0.72, 0.06, -3.05);
+    cover.scale.set(1.6, 0.65, 0.75);
+    cover.castShadow = false;
+    roadsterParts.push(lamp, cover);
+  }
 
   // Other body shapes from the shop (see car-shapes.js).
   const shapes = buildShapes(body, { paint, dark, glass, headlight });
@@ -90,9 +132,14 @@ export function createCar() {
   ringGeo.rotateX(Math.PI / 2);
   const glowDiscs = [];
   const thrusterRings = [];
+  const rimGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.37, 24);
+  const spokeGeo = roundBox(0.56, 0.38, 0.07, 0.02);
   for (const x of [-1.3, 1.3]) {
     for (const z of [-1.45, 1.45]) {
-      add(wheelGeo, dark, x, -0.15, z);
+      const tyre = add(wheelGeo, rubber, x, -0.15, z);
+      tyre.geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.35, 32);
+      add(rimGeo, chrome, x, -0.15, z);
+      for (let k = 0; k < 3; k++) add(spokeGeo, chrome, x, -0.15, z).rotation.y = (k / 3) * Math.PI;
       const disc = add(glowGeo, glow, x, -0.34, z);
       disc.castShadow = false;
       glowDiscs.push(disc);
@@ -158,14 +205,14 @@ export function createCar() {
   };
   { // 2: moss tufts and a vine stripe
     const g = part(2);
-    const moss = new THREE.MeshStandardMaterial({ color: 0x2f6b2a, roughness: 1, flatShading: true });
+    const moss = new THREE.MeshStandardMaterial({ color: 0x2f6b2a, roughness: 1 });
     const tuft = new THREE.IcosahedronGeometry(0.22, 0);
     for (const [x, z] of [[-0.8, -1.6], [0.7, -0.9], [-0.6, 1.3], [0.85, 1.6], [0.1, -2.6]]) add(tuft, moss, x, 0.25, z, g).scale.set(1.3, 0.5, 1);
-    add(new THREE.BoxGeometry(0.2, 0.03, 4), new THREE.MeshStandardMaterial({ color: 0x1f5a1c, roughness: 0.8 }), 0, 0.235, -0.3, g);
+    add(roundBox(0.2, 0.03, 4), new THREE.MeshStandardMaterial({ color: 0x1f5a1c, roughness: 0.8 }), 0, 0.235, -0.3, g);
   }
   { // 3: rough stone armour plates
     const g = part(3);
-    const stone = new THREE.MeshStandardMaterial({ color: 0x6c6e72, roughness: 1, flatShading: true });
+    const stone = new THREE.MeshStandardMaterial({ color: 0x6c6e72, roughness: 1 });
     const plate = new THREE.DodecahedronGeometry(0.4, 0);
     for (const [x, y, z] of [[-1.2, 0.05, -1.2], [1.2, 0.05, -1.2], [-1.2, 0.05, 0.9], [1.2, 0.05, 0.9], [0, 0.25, -1.9]]) add(plate, stone, x, y, z, g).scale.set(0.5, 0.6, 1.4);
   }
@@ -178,8 +225,8 @@ export function createCar() {
   { // 5: glowing gold trim lines (kept for the diamond look too)
     const g = part(5);
     const trim = new THREE.MeshBasicMaterial({ color: 0xfff0a0 });
-    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), trim, -1.16, 0.2, 0, g);
-    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), trim, 1.16, 0.2, 0, g);
+    add(roundBox(0.06, 0.06, 4.1), trim, -1.16, 0.2, 0, g);
+    add(roundBox(0.06, 0.06, 4.1), trim, 1.16, 0.2, 0, g);
   }
   { // 6: crystal spikes
     const g = part(6);
@@ -193,7 +240,7 @@ export function createCar() {
     const g = part(7);
     const feather = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, emissive: 0x887755, emissiveIntensity: 0.3 });
     const gold = new THREE.MeshStandardMaterial({ color: 0xffcc55, roughness: 0.2, metalness: 1, emissive: 0x664400, emissiveIntensity: 0.5 });
-    const featherGeo = new THREE.BoxGeometry(1, 0.05, 0.32);
+    const featherGeo = roundBox(1, 0.05, 0.32);
     for (const s of [-1, 1]) {
       const wing = new THREE.Group();
       wing.position.set(s * 1.1, 0.3, 0.5);
@@ -209,8 +256,8 @@ export function createCar() {
     const halo = add(new THREE.TorusGeometry(0.55, 0.06, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffe27a }), 0, 1.15, 0.3, g);
     halo.rotation.x = Math.PI / 2;
     halo.castShadow = false;
-    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), gold, -1.16, 0.2, 0, g);
-    add(new THREE.BoxGeometry(0.06, 0.06, 4.1), gold, 1.16, 0.2, 0, g);
+    add(roundBox(0.06, 0.06, 4.1), gold, -1.16, 0.2, 0, g);
+    add(roundBox(0.06, 0.06, 4.1), gold, 1.16, 0.2, 0, g);
   }
 
   const glowParts = []; // animated bits: { mesh, kind }
@@ -240,9 +287,9 @@ export function createCar() {
     const g = part(10);
     const cyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     const pink = new THREE.MeshBasicMaterial({ color: 0xff2ad8 });
-    for (const x of [-1.16, 1.16]) add(new THREE.BoxGeometry(0.05, 0.05, 4.1), cyan, x, 0.2, 0, g);
-    add(new THREE.BoxGeometry(2.1, 0.05, 0.05), pink, 0, 0.24, -2.05, g);
-    add(new THREE.BoxGeometry(2.1, 0.05, 0.05), pink, 0, 0.24, 2.05, g);
+    for (const x of [-1.16, 1.16]) add(roundBox(0.05, 0.05, 4.1), cyan, x, 0.2, 0, g);
+    add(roundBox(2.1, 0.05, 0.05), pink, 0, 0.24, -2.05, g);
+    add(roundBox(2.1, 0.05, 0.05), pink, 0, 0.24, 2.05, g);
     const holo = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.OctahedronGeometry(0.35, 0)), new THREE.LineBasicMaterial({ color: 0x00f0ff }));
     holo.position.set(0, 1.25, 0.3);
     g.add(holo);
@@ -250,7 +297,7 @@ export function createCar() {
   }
   { // 12: dragon scales and wings
     const g = part(12);
-    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.4, metalness: 0.5, flatShading: true });
+    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.4, metalness: 0.5 });
     const sc = new THREE.ConeGeometry(0.16, 0.35, 4);
     for (let z = -1.6; z <= 1.6; z += 0.4) for (const x of [-0.7, 0, 0.7]) add(sc, scaleMat, x, 0.3, z, g).rotation.x = Math.PI / 2.4;
     const wingShape = new THREE.Shape();
@@ -450,14 +497,14 @@ export function createCar() {
       paint.color.setHex(paintOverride ?? t.color);
       paint.roughness = t.rough;
       paint.metalness = t.metal;
-      paint.flatShading = !!t.flat;
+      paint.flatShading = false; // smooth paint on every look
       paint.transparent = t.opacity !== undefined;
       paint.opacity = t.opacity ?? 1;
       paint.emissive.setHex(t.emissive ?? 0x000000);
       paint.emissiveIntensity = t.emissive ? t.glow ?? 0.5 : 0;
       if (paintItem?.metal) { paint.metalness = 1; paint.roughness = 0.12; paint.flatShading = false; }
-      paint.envMap = paintItem?.metal ? envMap : null;
-      paint.envMapIntensity = 1.2;
+      paint.envMap = null; // use the scene's reflections
+      paint.envMapIntensity = paintItem?.metal ? 2 : 1;
       if (paintItem?.glow) { paint.emissive.setHex(paintItem.glow); paint.emissiveIntensity = 0.8; }
       if (paintItem) { paint.transparent = false; paint.opacity = 1; }
       paint.needsUpdate = true;

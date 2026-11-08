@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 import { BOUNDS } from './car.js';
 
 const HOME_Z = -45; // where the boss hovers, ahead of the car
@@ -31,9 +32,9 @@ export function createBoss(scene) {
     return m;
   };
   const baseHull = [
-    add(new THREE.BoxGeometry(7, 2.2, 4), hullMat, 0, 0, 0),
-    add(new THREE.BoxGeometry(4, 1.2, 2.6), hullMat, 0, 1.5, -0.3),
-    add(new THREE.BoxGeometry(5, 0.8, 1), dark, 0, -1.3, 1.6),
+    add(roundBox(7, 2.2, 4), hullMat, 0, 0, 0),
+    add(roundBox(4, 1.2, 2.6), hullMat, 0, 1.5, -0.3),
+    add(roundBox(5, 0.8, 1), dark, 0, -1.3, 1.6),
     add(new THREE.SphereGeometry(0.8, 24, 16), red, 0, 0.3, 2.05),
     add(new THREE.TorusGeometry(0.95, 0.15, 10, 32), dark, 0, 0.3, 2.05),
   ];
@@ -73,9 +74,9 @@ export function createBoss(scene) {
   const sirenMats = [new THREE.MeshBasicMaterial({ color: 0xff2030 }), new THREE.MeshBasicMaterial({ color: 0x2a60ff })];
   { // Police Gunship: light bar and stripes
     const g = extra('sirens');
-    for (let i = 0; i < 6; i++) put(g, new THREE.BoxGeometry(0.55, 0.3, 0.5), sirenMats[i % 2], -1.4 + i * 0.56, 2.25, -0.3);
+    for (let i = 0; i < 6; i++) put(g, roundBox(0.55, 0.3, 0.5), sirenMats[i % 2], -1.4 + i * 0.56, 2.25, -0.3);
     const white = new THREE.MeshStandardMaterial({ color: 0xeef2f8, roughness: 0.4 });
-    put(g, new THREE.BoxGeometry(7.05, 0.4, 4.05), white, 0, 0.2, 0);
+    put(g, roundBox(7.05, 0.4, 4.05), white, 0, 0.2, 0);
   }
   { // Alien Mothership: saucer ring with lights
     const g = extra('saucer');
@@ -92,7 +93,7 @@ export function createBoss(scene) {
     const g = extra('gold');
     const gold = new THREE.MeshStandardMaterial({ color: 0xffd84a, roughness: 0.1, metalness: 1, emissive: 0x4a3000 });
     for (let i = 0; i < 5; i++) put(g, new THREE.ConeGeometry(0.35, 1.4, 6), gold, -1.6 + i * 0.8, 2.7, -0.3);
-    put(g, new THREE.BoxGeometry(4.2, 0.3, 2.8), gold, 0, 2.1, -0.3);
+    put(g, roundBox(4.2, 0.3, 2.8), gold, 0, 2.1, -0.3);
   }
   { // Crystal Dreadnought: big crystal spikes
     const g = extra('crystal');
@@ -160,29 +161,29 @@ export function createBoss(scene) {
   { // Glitch Core: neon wireframe cube cage
     const g = extra('glitch');
     for (const sz of [8, 5.5]) {
-      const cage = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(sz, sz * 0.5, sz * 0.7)), new THREE.LineBasicMaterial({ color: sz > 6 ? 0x00f0ff : 0xff2ad8 }));
+      const cage = new THREE.LineSegments(new THREE.EdgesGeometry(roundBox(sz, sz * 0.5, sz * 0.7)), new THREE.LineBasicMaterial({ color: sz > 6 ? 0x00f0ff : 0xff2ad8 }));
       g.add(cage);
       spinners.push({ mesh: cage, axis: 'y', speed: sz > 6 ? 0.6 : -1 });
     }
-    put(g, new THREE.BoxGeometry(2, 2, 2), additive(0xff2ad8, 0.5), 0, 0, 0);
+    put(g, roundBox(2, 2, 2), additive(0xff2ad8, 0.5), 0, 0, 0);
   }
   { // Chrono Titan: clock face and gears
     const g = extra('chrono');
     put(g, new THREE.CircleGeometry(2.4, 40), new THREE.MeshBasicMaterial({ color: 0xfff4d8 }), 0, 0.6, 2.06);
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      put(g, new THREE.BoxGeometry(0.12, 0.4, 0.02), new THREE.MeshBasicMaterial({ color: 0x3a2a10 }), Math.sin(a) * 2, 0.6 + Math.cos(a) * 2, 2.08).rotation.z = -a;
+      put(g, roundBox(0.12, 0.4, 0.02), new THREE.MeshBasicMaterial({ color: 0x3a2a10 }), Math.sin(a) * 2, 0.6 + Math.cos(a) * 2, 2.08).rotation.z = -a;
     }
     const handMat = new THREE.MeshBasicMaterial({ color: 0x1a1008 });
     const minute = new THREE.Group();
     minute.position.set(0, 0.6, 2.1);
-    minute.add(put(new THREE.Group(), new THREE.BoxGeometry(0.12, 2, 0.02), handMat, 0, 0.9, 0));
+    minute.add(put(new THREE.Group(), roundBox(0.12, 2, 0.02), handMat, 0, 0.9, 0));
     minute.children[0].position.y = 0.9;
     g.add(minute);
     spinners.push({ mesh: minute, axis: 'z', speed: -2 });
     const hour = new THREE.Group();
     hour.position.set(0, 0.6, 2.11);
-    const hh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.3, 0.02), handMat);
+    const hh = new THREE.Mesh(roundBox(0.16, 1.3, 0.02), handMat);
     hh.position.y = 0.6;
     hour.add(hh);
     g.add(hour);
@@ -195,7 +196,7 @@ export function createBoss(scene) {
   }
   { // Elder Dragon: big wings, horns and a long tail
     const g = extra('dragon');
-    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x5a1a10, roughness: 0.5, metalness: 0.4, flatShading: true });
+    const scaleMat = new THREE.MeshStandardMaterial({ color: 0x5a1a10, roughness: 0.5, metalness: 0.4 });
     const wingShape = new THREE.Shape();
     wingShape.moveTo(0, 0);
     wingShape.lineTo(8, 4);

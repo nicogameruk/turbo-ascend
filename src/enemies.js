@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 import { BOUNDS } from './car.js';
 
 // All the regular (non-boss) enemies, and the manager that spawns them per level.
@@ -27,7 +28,7 @@ function mesh(parent, geo, mat, x = 0, y = 0, z = 0) {
 function sirens(parent, x, y, z, gap = 0.25) {
   const red = basic(0xff2030);
   const blue = basic(0x2a60ff);
-  const geo = new THREE.BoxGeometry(0.22, 0.14, 0.22);
+  const geo = roundBox(0.22, 0.14, 0.22);
   mesh(parent, geo, red, x - gap, y, z);
   mesh(parent, geo, blue, x + gap, y, z);
   return (time, fast = false) => {
@@ -49,7 +50,7 @@ function createDrone() {
   band.rotation.x = Math.PI / 2;
   mesh(group, new THREE.SphereGeometry(0.22, 16, 12), red, 0, 0, -0.62);
   const rotors = [];
-  const armGeo = new THREE.BoxGeometry(1.1, 0.08, 0.12);
+  const armGeo = roundBox(1.1, 0.08, 0.12);
   const rotorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.03, 16);
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
@@ -92,9 +93,9 @@ function createBike() {
   group.add(body);
   const white = std(0xe8edf5, 0.35, 0.4);
   const navy = std(0x1c2a5a, 0.4, 0.5);
-  mesh(body, new THREE.BoxGeometry(0.7, 0.45, 2.4), navy);
-  mesh(body, new THREE.BoxGeometry(0.75, 0.2, 1.2), white, 0, 0.25, -0.3);
-  mesh(body, new THREE.BoxGeometry(0.5, 0.35, 0.6), std(0x1a2c40, 0.08, 0.9), 0, 0.4, -0.9);
+  mesh(body, roundBox(0.7, 0.45, 2.4), navy);
+  mesh(body, roundBox(0.75, 0.2, 1.2), white, 0, 0.25, -0.3);
+  mesh(body, roundBox(0.5, 0.35, 0.6), std(0x1a2c40, 0.08, 0.9), 0, 0.4, -0.9);
   mesh(body, new THREE.CylinderGeometry(0.45, 0.45, 0.1, 16), glowMat(0x5fe4ff, 0.9), 0, -0.3, -0.7);
   mesh(body, new THREE.CylinderGeometry(0.45, 0.45, 0.1, 16), glowMat(0x5fe4ff, 0.9), 0, -0.3, 0.8);
   const flash = sirens(body, 0, 0.55, 0.7);
@@ -147,10 +148,10 @@ function createJet() {
   const white = std(0xe8edf5, 0.35, 0.4);
   const nose = mesh(group, new THREE.ConeGeometry(0.5, 1.6, 12), white, 0, 0, -2);
   nose.rotation.x = -Math.PI / 2;
-  mesh(group, new THREE.BoxGeometry(1, 0.7, 3), navy);
-  mesh(group, new THREE.BoxGeometry(4.2, 0.1, 1.2), navy, 0, 0, 0.4);
-  mesh(group, new THREE.BoxGeometry(0.1, 0.9, 0.8), navy, 0, 0.6, 1.2);
-  mesh(group, new THREE.BoxGeometry(0.55, 0.3, 0.9), std(0x1a2c40, 0.08, 0.9), 0, 0.45, -0.6);
+  mesh(group, roundBox(1, 0.7, 3), navy);
+  mesh(group, roundBox(4.2, 0.1, 1.2), navy, 0, 0, 0.4);
+  mesh(group, roundBox(0.1, 0.9, 0.8), navy, 0, 0.6, 1.2);
+  mesh(group, roundBox(0.55, 0.3, 0.9), std(0x1a2c40, 0.08, 0.9), 0, 0.45, -0.6);
   const burn = mesh(group, new THREE.ConeGeometry(0.3, 1.2, 12, 1, true), glowMat(0x7ad8ff));
   burn.rotation.x = Math.PI / 2;
   burn.position.z = 2.1;
@@ -256,9 +257,9 @@ function createWarship() {
   const group = new THREE.Group();
   const hull = std(0x3b2a5a, 0.35, 0.7);
   const dark = std(0x1c1530, 0.5, 0.6);
-  mesh(group, new THREE.BoxGeometry(9, 1.8, 6), hull);
-  mesh(group, new THREE.BoxGeometry(4, 1.4, 4), dark, 0, 1.4, 0);
-  const winGeo = new THREE.BoxGeometry(0.5, 0.3, 0.1);
+  mesh(group, roundBox(9, 1.8, 6), hull);
+  mesh(group, roundBox(4, 1.4, 4), dark, 0, 1.4, 0);
+  const winGeo = roundBox(0.5, 0.3, 0.1);
   const win = basic(0x9dff6a);
   for (let i = -3; i <= 3; i++) mesh(group, winGeo, win, i * 1.2, 0.2, 3.02);
   const cannons = [];
@@ -316,7 +317,7 @@ function createWarship() {
 function createSniper() {
   const group = new THREE.Group();
   const metal = std(0x50565f, 0.35, 0.85);
-  mesh(group, new THREE.BoxGeometry(1, 1.3, 0.8), metal);
+  mesh(group, roundBox(1, 1.3, 0.8), metal);
   mesh(group, new THREE.SphereGeometry(0.4, 16, 12), metal, 0, 1, 0);
   const eye = mesh(group, new THREE.SphereGeometry(0.14, 10, 8), basic(0xff2050), 0, 1.05, 0.36);
   const rifle = mesh(group, new THREE.CylinderGeometry(0.1, 0.12, 2.2, 10), std(0x1c1f24, 0.5, 0.7), 0.6, 0.3, 0.9);
@@ -451,13 +452,13 @@ function createPirate() {
   const group = new THREE.Group();
   const hull = std(0x3a2a4a, 0.4, 0.6);
   const trim = std(0xc8a040, 0.2, 1);
-  mesh(group, new THREE.BoxGeometry(2.2, 0.8, 3.6), hull);
+  mesh(group, roundBox(2.2, 0.8, 3.6), hull);
   const nose = mesh(group, new THREE.ConeGeometry(0.8, 1.6, 4), hull, 0, 0, -2.5);
   nose.rotation.x = -Math.PI / 2;
-  mesh(group, new THREE.BoxGeometry(5, 0.15, 1.4), hull, 0, 0, 0.5);
-  mesh(group, new THREE.BoxGeometry(0.08, 1.6, 1.2), trim, 0, 1, 0.6);
+  mesh(group, roundBox(5, 0.15, 1.4), hull, 0, 0, 0.5);
+  mesh(group, roundBox(0.08, 1.6, 1.2), trim, 0, 1, 0.6);
   // Skull-ish flag
-  mesh(group, new THREE.BoxGeometry(0.05, 0.7, 0.9), basic(0x111111), 0, 1.5, 0.2);
+  mesh(group, roundBox(0.05, 0.7, 0.9), basic(0x111111), 0, 1.5, 0.2);
   mesh(group, new THREE.SphereGeometry(0.16, 10, 8), basic(0xffffff), 0.04, 1.55, 0.2);
   const guns = [-1.8, 1.8].map((x) => {
     const g = mesh(group, new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8), trim, x, -0.2, 1.4);
@@ -576,13 +577,13 @@ function createGlitch() {
   const body = new THREE.Group();
   group.add(body);
   const dark = std(0x101828, 0.3, 0.8);
-  mesh(body, new THREE.BoxGeometry(1.2, 1.2, 1.2), dark);
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.25, 1.25, 1.25)), new THREE.LineBasicMaterial({ color: 0x00f0ff }));
+  mesh(body, roundBox(1.2, 1.2, 1.2), dark);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(roundBox(1.25, 1.25, 1.25)), new THREE.LineBasicMaterial({ color: 0x00f0ff }));
   body.add(edges);
-  const visor = mesh(body, new THREE.BoxGeometry(0.9, 0.2, 0.05), basic(0xff2ad8), 0, 0.15, 0.62);
-  mesh(body, new THREE.BoxGeometry(0.15, 0.6, 0.15), dark, 0, 0.9, 0);
+  const visor = mesh(body, roundBox(0.9, 0.2, 0.05), basic(0xff2ad8), 0, 0.15, 0.62);
+  mesh(body, roundBox(0.15, 0.6, 0.15), dark, 0, 0.9, 0);
   const glitchMat = glowMat(0x00f0ff, 0.6);
-  const ghost = mesh(group, new THREE.BoxGeometry(1.4, 1.4, 1.4), glitchMat);
+  const ghost = mesh(group, roundBox(1.4, 1.4, 1.4), glitchMat);
 
   let jumps, t, flicker;
   const jump = () => {
@@ -622,14 +623,14 @@ function createGlitch() {
 // ---------- Dragon: flies ahead and breathes a sweeping stream of fire ----------
 function createDragon() {
   const group = new THREE.Group();
-  const scale = std(0x2a6a2a, 0.4, 0.5, { flatShading: true, emissive: 0x0a2a0a });
+  const scale = std(0x2a6a2a, 0.4, 0.5, { emissive: 0x0a2a0a });
   const belly = std(0xc8a040, 0.5, 0.2);
   const body = mesh(group, new THREE.SphereGeometry(1, 16, 12), scale);
   body.scale.set(1, 0.8, 2.2);
   const neck = mesh(group, new THREE.CylinderGeometry(0.35, 0.55, 1.8, 8), scale, 0, 0.6, 2.2);
   neck.rotation.x = 1.1;
-  const head = mesh(group, new THREE.BoxGeometry(0.8, 0.6, 1.2), scale, 0, 1, 3.1);
-  mesh(group, new THREE.BoxGeometry(0.6, 0.2, 0.8), belly, 0, 0.75, 3.2);
+  const head = mesh(group, roundBox(0.8, 0.6, 1.2), scale, 0, 1, 3.1);
+  mesh(group, roundBox(0.6, 0.2, 0.8), belly, 0, 0.75, 3.2);
   for (const x of [-0.25, 0.25]) {
     const h = mesh(head, new THREE.ConeGeometry(0.08, 0.5, 6), std(0x1a1010, 0.4, 0.3), x, 0.4, -0.3);
     h.rotation.x = -0.6;
@@ -709,7 +710,7 @@ function createSpirit() {
   const core = mesh(group, new THREE.SphereGeometry(0.55, 16, 12), coreMat);
   const aura = mesh(group, new THREE.SphereGeometry(1.2, 16, 12), glowMat(0xffffff, 0.35));
   // A ghostly car shape, since it copies you.
-  const ghost = mesh(group, new THREE.BoxGeometry(2, 0.4, 3.6), glowMat(0xffffff, 0.25));
+  const ghost = mesh(group, roundBox(2, 0.4, 3.6), glowMat(0xffffff, 0.25));
   ghost.position.y = -0.2;
 
   let phase, t, hue;
@@ -780,9 +781,9 @@ function createShark() {
   mesh(tail, new THREE.ConeGeometry(0.5, 1.2, 4), grey, 0, 0.3, 0.3).rotation.x = 1.2;
   mesh(tail, new THREE.ConeGeometry(0.35, 0.8, 4), grey, 0, -0.3, 0.2).rotation.x = 2;
   group.add(tail);
-  for (const x of [-0.75, 0.75]) mesh(group, new THREE.BoxGeometry(0.9, 0.08, 0.5), grey, x, -0.3, -0.2).rotation.z = x * 0.6;
+  for (const x of [-0.75, 0.75]) mesh(group, roundBox(0.9, 0.08, 0.5), grey, x, -0.3, -0.2).rotation.z = x * 0.6;
   for (const x of [-0.35, 0.35]) mesh(group, new THREE.SphereGeometry(0.09, 8, 6), basic(0x111111), x, 0.2, -1.6);
-  mesh(group, new THREE.BoxGeometry(0.6, 0.05, 0.15), basic(0xffffff), 0, -0.25, -1.75);
+  mesh(group, roundBox(0.6, 0.05, 0.15), basic(0xffffff), 0, -0.25, -1.75);
 
   let phase, t, side;
   return {

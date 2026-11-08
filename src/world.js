@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { roundBox } from './round.js';
 
 const FAR_Z = -340; // where scenery respawns
 const NEAR_Z = 30; // past the camera: recycle
@@ -131,7 +133,7 @@ function createLandmarks(scene) {
     g.position.set(0, 40, -700);
   });
   add('volcano', (g) => {
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(160, 150, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x1a0c08, roughness: 1, flatShading: true, fog: false }));
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(160, 150, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0x1a0c08, roughness: 1, fog: false }));
     const lava = new THREE.Mesh(new THREE.CircleGeometry(24, 24), glow(0xff5a10, 0.9));
     lava.rotation.x = -Math.PI / 2;
     lava.position.y = 70;
@@ -187,23 +189,67 @@ function createLandmarks(scene) {
   };
 }
 
+// A lumpy, natural rock: a round shape with its corners pushed in and out.
+function rockGeometry() {
+  const g = new THREE.IcosahedronGeometry(1, 2);
+  const p = g.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    // Smooth bumps from a few sine waves, so the same point always moves the same way.
+    const n = Math.sin(v.x * 3.1 + v.y * 1.7) * 0.12 + Math.sin(v.z * 2.3 - v.y * 2.9) * 0.1 + Math.sin(v.x * 7 + v.z * 5) * 0.04;
+    v.multiplyScalar(1 + n);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  // Join the corners up so the light falls smoothly across the surface (no facets).
+  g.deleteAttribute('normal');
+  g.deleteAttribute('uv');
+  const smooth = mergeVertices(g);
+  smooth.computeVertexNormals();
+  return smooth;
+}
+
+// A soft round glow, used for the sun.
+function glowTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const x = c.getContext('2d');
+  const grad = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.12, 'rgba(255,250,230,1)');
+  grad.addColorStop(0.3, 'rgba(255,230,180,0.45)');
+  grad.addColorStop(1, 'rgba(255,200,140,0)');
+  x.fillStyle = grad;
+  x.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 // Ground scenery shapes. Each is a unit-ish shape with its base at y = -0.5.
 const SHAPES = {
-  rock: new THREE.DodecahedronGeometry(1, 0),
-  tree: new THREE.ConeGeometry(0.6, 1, 7),
-  tower: new THREE.BoxGeometry(0.6, 1, 0.6),
+  rock: rockGeometry(),
+  tree: new THREE.ConeGeometry(0.6, 1, 16),
+  tower: roundBox(0.6, 1, 0.6),
   crystal: new THREE.OctahedronGeometry(0.7, 0),
   pillar: new THREE.CylinderGeometry(0.3, 0.34, 1, 14),
-  spire: new THREE.ConeGeometry(0.5, 1, 5),
+  spire: new THREE.ConeGeometry(0.5, 1, 12),
 };
 
-export function createWorld(scene, hemi) {
+// opts.anisotropy: keeps the ground texture sharp far into the distance.
+export function createWorld(scene, hemi, opts = {}) {
   scene.fog = new THREE.Fog(0xffffff, 90, 330);
+
+  // The sun: a bright glow low in the sky (daytime levels only).
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xfff2d8, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  sunSprite.scale.set(110, 110, 1);
+  sunSprite.position.set(-170, 120, -620);
+  scene.add(sunSprite);
 
   // Ground far below; its texture scrolls to show speed.
   const GROUND_SIZE = 900;
   const GROUND_REPEAT = 45;
-  const groundMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+  const groundMat = new THREE.MeshStandardMaterial({ roughness: 1, envMapIntensity: 0 }); // dull ground: no reflections
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, -30, -300);
@@ -255,7 +301,7 @@ export function createWorld(scene, hemi) {
   }
 
   // Puffy clouds (built from spheres). Mostly to the sides, sometimes in your path.
-  const cloudMat = new THREE.MeshStandardMaterial({ roughness: 1, emissiveIntensity: 0.25, transparent: true });
+  const cloudMat = new THREE.MeshStandardMaterial({ roughness: 1, emissiveIntensity: 0.25, transparent: true, envMapIntensity: 0 });
   const puffGeo = new THREE.IcosahedronGeometry(1, 2);
   for (let i = 0; i < 34; i++) {
     const cloud = new THREE.Group();
@@ -301,12 +347,16 @@ export function createWorld(scene, hemi) {
         const grid = level.ground.style === 'grid';
         groundTex = grid ? gridTexture(level.ground) : groundTexture(level.ground);
         groundTex.repeat.set(GROUND_REPEAT * (grid ? 2 : 1), GROUND_REPEAT * (grid ? 2 : 1));
+        groundTex.anisotropy = opts.anisotropy ?? 1;
         groundMat.map = groundTex;
         groundMat.emissiveMap = grid ? groundTex : null;
         groundMat.emissive.setHex(grid ? 0xffffff : 0x000000);
         groundMat.needsUpdate = true;
       }
       stars.visible = !!level.space || level.n === 10;
+      // No sun at night, in space, or where something else fills the sky.
+      sunSprite.visible = !level.space && !level.landmark && ![9, 10, 19, 22].includes(level.n);
+      sunSprite.material.color.set(level.sky2?.[1] ?? '#fff2d8').lerp(new THREE.Color(0xffffff), 0.6);
       landmarks.show(level.landmark);
 
       const s = level.scenery;
@@ -315,7 +365,9 @@ export function createWorld(scene, hemi) {
       propMat.roughness = s.metal ? 0.35 : s.shape === 'crystal' ? 0.15 : 0.95;
       propMat.emissive.setHex(s.glow ?? 0x000000);
       propMat.emissiveIntensity = s.glow ? 0.5 : 0;
-      propMat.flatShading = s.shape !== 'pillar';
+      // Rocks and pillars are smooth and natural; crystals, trees and towers keep sharp edges.
+      // Only crystals keep sharp, faceted faces; everything else is smooth.
+      propMat.flatShading = s.shape === 'crystal';
       propMat.needsUpdate = true;
       for (const { obj, place } of props) {
         obj.geometry = SHAPES[s.shape];

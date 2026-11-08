@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox, lumpyRock } from './round.js';
 import { BOUNDS } from './car.js';
 
 // Obstacles that aren't enemies. Each one warns you before it can hurt you.
@@ -11,8 +12,8 @@ const glow = (color, opacity = 0.8) => new THREE.MeshBasicMaterial({ color, tran
 const FALL_TIME = 2.2;
 function createMeteor(scene) {
   const rock = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(1.1, 0),
-    new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9, flatShading: true, emissive: 0xff4a10, emissiveIntensity: 0.6 }),
+    lumpyRock(1.1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9, emissive: 0xff4a10, emissiveIntensity: 0.6 }),
   );
   const fire = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), glow(0xff7a20, 0.45));
   const tailGeo = new THREE.ConeGeometry(1.1, 5, 12, 1, true);
@@ -74,7 +75,7 @@ function createLightning(scene) {
   const boltMat = glow(0xe8f0ff, 1);
   // Zig-zag bolt made of short segments.
   const bolt = new THREE.Group();
-  const segGeo = new THREE.BoxGeometry(0.35, 1, 0.35);
+  const segGeo = roundBox(0.35, 1, 0.35);
   const segs = [];
   for (let i = 0; i < 20; i++) {
     const s = new THREE.Mesh(segGeo, boltMat);
@@ -135,8 +136,8 @@ function createLightning(scene) {
 function createLava(scene) {
   const group = new THREE.Group();
   const lavaMat = new THREE.MeshStandardMaterial({ color: 0xff4a10, emissive: 0xff3a00, emissiveIntensity: 1.4, roughness: 0.6 });
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(18, 1, 2.5), lavaMat);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(18.4, 0.6, 3), glow(0xffc040, 0.7));
+  const wall = new THREE.Mesh(roundBox(18, 1, 2.5), lavaMat);
+  const top = new THREE.Mesh(roundBox(18.4, 0.6, 3), glow(0xffc040, 0.7));
   const blobs = [];
   for (let i = 0; i < 8; i++) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), lavaMat);
@@ -183,8 +184,8 @@ function createLava(scene) {
 // ---------- Asteroid storm: rocks tumbling straight at you ----------
 function createAsteroid(scene) {
   const rock = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(1, 1),
-    new THREE.MeshStandardMaterial({ color: 0x6a6070, roughness: 0.95, flatShading: true }),
+    lumpyRock(1, 2),
+    new THREE.MeshStandardMaterial({ color: 0x6a6070, roughness: 0.95 }),
   );
   rock.castShadow = true;
   scene.add(rock);

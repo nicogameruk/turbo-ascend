@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 import { input } from './input.js';
 import { createCamera } from './camera.js';
 import { createCar } from './car.js';
@@ -25,6 +26,10 @@ import { createPet } from './pets.js';
 import { runPoints, sendPoints, forgetPlayer, newPlayerId, createBoardView } from './leaderboard.js';
 import { BOUNDS } from './car.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const BASE_SPEED = 40;
 const MENU_SPEED = 22;
@@ -45,26 +50,56 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9; // a touch darker: reflections and glow add their own light
 document.getElementById('app').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = createCamera();
 
-const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7a5434, 1.3);
+const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7a5434, 0.85);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
 sun.position.set(8, 20, 6);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.02;
+sun.shadow.radius = 3;
 Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 14, bottom: -6, near: 1, far: 50 });
 scene.add(sun);
 
 const audio = createAudio();
-const world = createWorld(scene, hemi);
+const world = createWorld(scene, hemi, { anisotropy: renderer.capabilities.getMaxAnisotropy() });
 const car = createCar();
 scene.add(car.group);
-// A soft studio "room" for chrome paint to reflect.
-car.setEnvironment(new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture);
+// Reflections: every shiny surface (car paint, glass, metal, gold, crystals)
+// reflects a soft studio "room", so things look solid and real.
+const envMap = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = envMap;
+scene.environmentIntensity = 0.35;
+car.setEnvironment(envMap);
+
+// Glow: bright things (thrusters, lasers, lava, neon, explosions) bleed soft light.
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.4, 0.97);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+let highGraphics = true;
+// Settings → Graphics: High (glow, sharp shadows) or Low (faster, for slow devices).
+function applyGraphics(level) {
+  highGraphics = level !== 'low';
+  renderer.setPixelRatio(Math.min(devicePixelRatio, highGraphics ? 2 : 1));
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(innerWidth, innerHeight);
+  const size = highGraphics ? 2048 : 1024;
+  if (sun.shadow.mapSize.x !== size) {
+    sun.shadow.mapSize.set(size, size);
+    sun.shadow.map?.dispose();
+    sun.shadow.map = null;
+  }
+}
 
 // Fire Breath: a cone of flame in front of the car.
 const breathMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
@@ -75,13 +110,13 @@ const breath = new THREE.Mesh(breathGeo, breathMat);
 let omegaBeam = false; // Omega Beam reuses the Fire Breath cone, bigger and white
 
 // Tidal Wave: a wall of water that rushes forward.
-const wave = new THREE.Mesh(new THREE.BoxGeometry(22, 9, 2), new THREE.MeshBasicMaterial({ color: 0x5ad8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+const wave = new THREE.Mesh(roundBox(22, 9, 2), new THREE.MeshBasicMaterial({ color: 0x5ad8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
 wave.visible = false;
 scene.add(wave);
 let waveT = 0;
 
 // Ice Wall: a sheet of ice just in front of the car.
-const iceWall = new THREE.Mesh(new THREE.BoxGeometry(7, 4.5, 0.25), new THREE.MeshStandardMaterial({ color: 0xd8f4ff, roughness: 0.05, transparent: true, opacity: 0.45, emissive: 0x4a8ab8, emissiveIntensity: 0.5 }));
+const iceWall = new THREE.Mesh(roundBox(7, 4.5, 0.25), new THREE.MeshStandardMaterial({ color: 0xd8f4ff, roughness: 0.05, transparent: true, opacity: 0.45, emissive: 0x4a8ab8, emissiveIntensity: 0.5 }));
 iceWall.position.set(0, 0.3, -5);
 iceWall.visible = false;
 car.group.add(iceWall);
@@ -163,6 +198,7 @@ const boss = createBoss(scene);
 const hud = createHud();
 const progress = restoreProgress(createProgress(), loadSave());
 audio.setSettings(progress.settings);
+applyGraphics(progress.settings.graphics);
 const touch = createTouchControls(input);
 touch.setEnabled(progress.settings.controls === 'touch');
 
@@ -235,7 +271,7 @@ const menus = createMenus({
   onResume: () => resume(),
   onRestart: () => { menus.hide(); startRun(); },
   onQuit: () => showTitle(),
-  onSettings: (s) => { progress.settings = s; audio.setSettings(s); touch.setEnabled(s.controls === 'touch'); save(); },
+  onSettings: (s) => { progress.settings = s; audio.setSettings(s); touch.setEnabled(s.controls === 'touch'); applyGraphics(s.graphics); save(); },
   onResetSave: () => {
     forgetPlayer(progress.playerId);
     clearSave();
@@ -993,7 +1029,8 @@ function frame() {
     bossMax: boss.maxHp,
     ability: abilityInfo,
   });
-  renderer.render(scene, camera);
+  if (highGraphics) composer.render();
+  else renderer.render(scene, camera);
   input.endFrame();
 }
 
@@ -1001,6 +1038,7 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && (PLAYING.includes(state) || state === 'countdown')) pause();

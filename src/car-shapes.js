@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { roundBox } from './round.js';
 
 // Car body shapes from the shop. Each builds the car's shell into a Group.
 // The car's paint, glass and trim materials are shared, so level looks and
@@ -16,7 +17,7 @@ function builder(group, { paint, dark, glass, headlight }) {
     group.add(m);
     return m;
   };
-  const box = (w, h, d, mat, x, y, z) => add(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+  const box = (w, h, d, mat, x, y, z) => add(roundBox(w, h, d), mat, x, y, z);
   const lights = (y, z, gap = 0.7) => { box(0.45, 0.12, 0.04, headlight, -gap, y, z); box(0.45, 0.12, 0.04, headlight, gap, y, z); };
   return { add, box, lights, paint, dark, glass, headlight };
 }
@@ -48,7 +49,7 @@ const SHAPES = {
     s.closePath();
     const geo = new THREE.ExtrudeGeometry(s, { depth: 2.3, bevelEnabled: false });
     geo.translate(0, 0, -1.15);
-    geo.rotateY(Math.PI / 2);
+    geo.rotateY(-Math.PI / 2); // nose toward -z
     b.add(geo, b.paint);
     const canopy = b.add(new THREE.SphereGeometry(0.75, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), b.glass, 0, 0.32, -0.2);
     canopy.scale.set(1, 0.6, 1.7);

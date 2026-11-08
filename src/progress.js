@@ -44,7 +44,7 @@ export const UPGRADES = [
 
 // Touch-screen controls by default on phones and tablets.
 const isTouchDevice = () => typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
-export const DEFAULT_SETTINGS = { volume: 0.7, music: true, sfx: true, controls: isTouchDevice() ? 'touch' : 'keyboard' };
+export const DEFAULT_SETTINGS = { volume: 0.7, music: true, sfx: true, controls: isTouchDevice() ? 'touch' : 'keyboard', graphics: 'high' };
 
 export function createProgress() {
   return {
@@ -94,6 +94,7 @@ export function restoreProgress(progress, saved) {
     music: s.music !== false,
     sfx: s.sfx !== false,
     controls: s.controls === 'touch' || s.controls === 'keyboard' ? s.controls : DEFAULT_SETTINGS.controls,
+    graphics: s.graphics === 'low' ? 'low' : 'high',
   };
   progress.started = !!saved.started;
   progress.name = typeof saved.name === 'string' ? saved.name.slice(0, 30) : '';
