@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Turbo Ascend</title>
     <meta name="description" content="Fly a flying car through 14 levels, from a dented dirt racer to a glowing cosmic machine. A free 3D browser game." />
     <meta name="theme-color" content="#0b1020" />
@@ -12,6 +12,9 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; }
+      /* It's a game, not a document: no zooming, text highlighting, long-press menus or grey tap flashes. */
+      html, body { touch-action: manipulation; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+      #app canvas { touch-action: none; }
       #app canvas { display: block; }
       #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.5); }
       .panel { position: absolute; top: 16px; display: flex; flex-direction: column; gap: 6px; }
@@ -93,10 +96,12 @@
       #actions button:first-child { border: 0; background: linear-gradient(90deg, #ff7a18, #ffb347); color: #1a0f05; }
 
       /* Touch controls */
-      #touch { position: fixed; inset: 0; display: none; pointer-events: none; z-index: 1; user-select: none; -webkit-user-select: none; touch-action: none; }
-      #stick-zone { position: absolute; left: 0; top: 18%; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
-      #stick { position: absolute; left: 110px; top: calc(100% - 120px); width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(255,255,255,.12); border: 3px solid rgba(255,255,255,.5); pointer-events: none; }
-      #stick-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.75); transform: translate(-50%, -50%); }
+      #touch { position: fixed; inset: 0; display: none; pointer-events: none; z-index: 1; touch-action: none; }
+      #touch, #touch * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      #stick-zone { position: absolute; left: 0; top: 15%; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
+      #stick { position: absolute; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.08), rgba(255,255,255,.18)); border: 3px solid rgba(255,255,255,.55); box-shadow: 0 0 18px rgba(0,0,0,.35); pointer-events: none; transition: opacity .15s; }
+      #stick.active { border-color: #ffcf8a; }
+      #stick-knob { position: absolute; left: 50%; top: 50%; width: 66px; height: 66px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, rgba(220,230,255,.85)); box-shadow: 0 3px 10px rgba(0,0,0,.4); transform: translate(-50%, -50%); }
       .tbtn { position: absolute; pointer-events: auto; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid rgba(255,255,255,.6); background: rgba(8,12,28,.45); color: #fff; font: 800 13px system-ui, sans-serif; letter-spacing: .05em; overflow: hidden; }
       .tbtn.down { background: rgba(255,207,138,.45); transform: scale(.94); }
       #tbtn-boost { right: 24px; bottom: 28px; width: 96px; height: 96px; font-size: 16px; border-color: #ffb347; }
