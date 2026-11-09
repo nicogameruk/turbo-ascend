@@ -236,6 +236,47 @@ const SHAPES = {
     }
     b.lights(0.1, -2.6, 0.5);
   } },
+
+  // A chubby, bumpy toad: big golden eyes, a wide grin and folded back legs.
+  toad: { roofY: 1.12, roofZ: 0.3, compact: true, build(b) {
+    // Fixed colours: toads are always toad-coloured.
+    const skin = new THREE.MeshStandardMaterial({ color: 0x6a8a32, roughness: 0.75 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x4a6420, roughness: 0.85 });
+    const belly = new THREE.MeshStandardMaterial({ color: 0xe8dca0, roughness: 0.8 });
+    const iris = new THREE.MeshStandardMaterial({ color: 0xffc81a, roughness: 0.25, emissive: 0x6a4a00, emissiveIntensity: 0.4 });
+    const pupil = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
+    const mouthMat = new THREE.MeshStandardMaterial({ color: 0x2a3010, roughness: 0.6 });
+    // Round body and pale belly
+    b.add(new THREE.SphereGeometry(1, 32, 20), skin, 0, 0.35, 0.15).scale.set(1.15, 0.72, 1.55);
+    b.add(new THREE.SphereGeometry(1, 24, 14), belly, 0, 0.05, -0.2).scale.set(1.0, 0.45, 1.3);
+    // Wide flat head with a big grin
+    b.add(new THREE.SphereGeometry(1, 32, 20), skin, 0, 0.42, -1.55).scale.set(1.15, 0.58, 0.9);
+    const grin = b.add(new THREE.TorusGeometry(0.85, 0.035, 8, 32, Math.PI * 0.8), mouthMat, 0, 0.44, -1.62);
+    grin.rotation.x = Math.PI / 2;
+    grin.rotation.z = Math.PI * 1.1;
+    grin.scale.set(1.05, 0.9, 1);
+    for (const sd of [-1, 1]) b.add(new THREE.SphereGeometry(0.035, 8, 6), mouthMat, sd * 0.28, 0.66, -2.33); // nostrils
+    // Bulging eyes with golden irises and sideways pupils
+    for (const sd of [-1, 1]) {
+      b.add(new THREE.SphereGeometry(0.34, 20, 14), skin, sd * 0.6, 0.85, -1.65);
+      b.add(new THREE.SphereGeometry(0.27, 20, 14), iris, sd * 0.62, 0.95, -1.82);
+      b.add(new THREE.BoxGeometry(0.22, 0.07, 0.04), pupil, sd * 0.63, 0.97, -2.08).rotation.y = sd * -0.25;
+    }
+    // Big folded back legs and little front feet
+    for (const sd of [-1, 1]) {
+      b.add(new THREE.SphereGeometry(0.55, 20, 14), skin, sd * 1.05, 0.15, 0.95).scale.set(0.7, 0.75, 1.3);
+      b.add(new THREE.SphereGeometry(0.3, 14, 10), dark, sd * 1.1, -0.2, 0.25).scale.set(1, 0.4, 1.6);
+      b.add(new THREE.SphereGeometry(0.22, 14, 10), dark, sd * 0.85, -0.15, -1.9).scale.set(1, 0.4, 1.3);
+    }
+    // Bumpy warts all over the back (same pattern every time)
+    for (let i = 0; i < 22; i++) {
+      const a = i * 2.4;
+      const r = 0.25 + (i % 5) * 0.16;
+      const x = Math.cos(a) * r;
+      const z = 0.15 + Math.sin(a) * r * 1.3;
+      b.add(new THREE.SphereGeometry(0.07 + (i % 3) * 0.025, 10, 8), i % 2 ? dark : skin, x, 0.35 + 0.7 * Math.sqrt(Math.max(0, 1 - (x / 1.15) ** 2 - ((z - 0.15) / 1.55) ** 2)), z);
+    }
+  } },
 };
 
 export const SHAPE_IDS = Object.keys(SHAPES);
