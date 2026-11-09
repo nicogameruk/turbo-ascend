@@ -237,6 +237,37 @@ const SHAPES = {
     b.lights(0.1, -2.6, 0.5);
   } },
 
+  // A chunky yellow duck: orange bill, wings on the sides and a perky tail.
+  duck: { roofY: 1.8, roofZ: -1.15, compact: true, build(b) { // hats sit on its head
+    const feathers = new THREE.MeshStandardMaterial({ color: 0xffd21a, roughness: 0.55 });
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0xf0b800, roughness: 0.6 });
+    const bill = new THREE.MeshStandardMaterial({ color: 0xff7a14, roughness: 0.4 });
+    const eye = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
+    const shine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    // Round body, a neck and a big head
+    b.add(new THREE.SphereGeometry(1, 32, 20), feathers, 0, 0.35, 0.1).scale.set(1.1, 0.75, 1.6);
+    b.add(new THREE.SphereGeometry(0.5, 20, 14), feathers, 0, 0.85, -0.95);
+    b.add(new THREE.SphereGeometry(0.62, 28, 18), feathers, 0, 1.25, -1.15);
+    // Perky tail pointing up at the back
+    const tail = b.add(new THREE.ConeGeometry(0.42, 0.9, 16), feathers, 0, 0.8, 1.55);
+    tail.rotation.x = 0.9;
+    tail.scale.set(1, 1, 0.55);
+    // Flat orange bill
+    b.add(new THREE.SphereGeometry(1, 20, 12), bill, 0, 1.1, -1.75).scale.set(0.42, 0.13, 0.45);
+    b.add(new THREE.SphereGeometry(1, 20, 12), bill, 0, 1.0, -1.7).scale.set(0.36, 0.09, 0.38);
+    // Shiny black eyes
+    for (const sd of [-1, 1]) {
+      b.add(new THREE.SphereGeometry(0.11, 14, 10), eye, sd * 0.32, 1.42, -1.62);
+      b.add(new THREE.SphereGeometry(0.035, 8, 6), shine, sd * 0.35, 1.47, -1.72);
+    }
+    // Folded wings on the sides
+    for (const sd of [-1, 1]) {
+      const wing = b.add(new THREE.SphereGeometry(1, 24, 14), wingMat, sd * 0.98, 0.5, 0.25);
+      wing.scale.set(0.22, 0.42, 1.0);
+      wing.rotation.x = -0.2;
+    }
+  } },
+
   // A chubby, bumpy toad: big golden eyes, a wide grin and folded back legs.
   toad: { roofY: 1.12, roofZ: 0.3, compact: true, build(b) {
     // Fixed colours: toads are always toad-coloured.
